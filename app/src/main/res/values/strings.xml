@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TTS Browser</string>
+    <string name="nav_browser">Trình duyệt</string>
+    <string name="nav_library">Thư viện</string>
+    <string name="nav_settings">Cài đặt</string>
+    <string name="placeholder_browser">Trình duyệt — sẽ làm ở Phase 2</string>
+    <string name="placeholder_library">Thư viện trống</string>
+    <string name="placeholder_settings">Cài đặt — sẽ làm ở Phase 8</string>
+</resources>
