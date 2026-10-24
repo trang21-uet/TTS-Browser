@@ -23,4 +23,27 @@
     <string name="browser_history_empty">Chưa có lịch sử</string>
     <string name="browser_bookmarks_empty">Chưa có bookmark</string>
     <string name="browser_start_empty">Nhập địa chỉ trang truyện ở thanh trên để bắt đầu. Trang đã bookmark sẽ hiện ở đây.</string>
+    <string name="action_close">Đóng</string>
+
+    <string name="extract_read">Đọc</string>
+    <string name="extract_meta">%1$d đoạn · %2$d câu · %3$d ký tự</string>
+    <string name="extract_source_selector">Đang dùng vùng đã chọn cho trang này</string>
+    <string name="extract_selector_missed">Vùng đã chọn không còn khớp, đã dùng trích tự động</string>
+    <string name="extract_prev">Chương trước</string>
+    <string name="extract_next">Chương sau</string>
+    <string name="extract_pick_other">Chọn vùng khác</string>
+    <string name="extract_clear_rule">Bỏ vùng đã chọn</string>
+    <string name="extract_failed_title">Không trích được nội dung</string>
+    <string name="extract_failed_no_content">Không tìm thấy nội dung chính trên trang này.</string>
+    <string name="extract_failed_too_short">Nội dung trích được quá ngắn (dưới 200 ký tự).</string>
+    <string name="extract_failed_script">Lỗi khi chạy trích nội dung. Hãy thử lại khi trang đã tải xong.</string>
+    <string name="extract_failed_hint">Bạn có thể chạm chọn khối nội dung trên trang.</string>
+    <string name="extract_pick_manual">Chọn vùng thủ công</string>
+    <string name="picker_hint">Chạm vào khối nội dung chương</string>
+    <string name="picker_picked">%1$s · %2$d ký tự</string>
+    <string name="picker_selector_failed">Không tạo được selector cho khối này, hãy chọn khối khác</string>
+    <string name="picker_cannot_save">Không lưu được vùng chọn cho trang này (không phải trang http/https)</string>
+    <string name="picker_expand">Mở rộng</string>
+    <string name="picker_confirm">Xác nhận</string>
+    <string name="picker_cancel">Hủy</string>
 </resources>

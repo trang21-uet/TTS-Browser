@@ -27,8 +27,8 @@ app/src/main/java/com/trangnx/ttsbrowser/
 │   ├── library/       LibraryScreen, LibraryViewModel
 │   ├── settings/      SettingsScreen (engine, giọng, tốc độ, giao diện)
 │   └── player/        MiniPlayerBar, SleepTimerSheet
-├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, HeadlessPageLoader, ElementPicker (chọn vùng thủ công)
-├── text/              SentenceSegmenter
+├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, ElementPicker (chọn vùng thủ công), HeadlessPageLoader (Phase 6)
+├── text/              SentenceSegmenter, Sentence
 ├── tts/
 │   ├── TtsEngine.kt          interface chung
 │   ├── system/               SystemTtsEngine
@@ -37,7 +37,7 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── data/
 │   ├── db/            AppDatabase, entities, DAOs
 │   ├── settings/      SettingsRepository (DataStore)
-│   └── repo/          BrowsingRepository (history, bookmark), LibraryRepository, ProgressRepository
+│   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository, ProgressRepository
 └── di/                AppContainer
 ```
 
@@ -81,6 +81,12 @@ interface TtsEngine {
 - `seekToNext/Previous` = câu sau/trước; custom command "Chương sau", "Hẹn giờ".
 - Expose `StateFlow<PlaybackUiState>` (index câu, đang phát, chương) cho UI.
 
+### Trích nội dung (Phase 3)
+- `assets/js/`: `Readability.js` (Mozilla 0.6.0, Apache-2.0), `extract-page.js`, `element-picker.js`.
+- Mỗi lần trích: nối `Readability.js` + `extract-page.js` vào một IIFE rồi `evaluateJavascript` → chuỗi JSON (`RawPage`): text (giữ ngắt đoạn), tiêu đề, ứng viên link. Kotlin làm sạch (`TextCleaner`), chấm điểm link (`ChapterLinkFinder`), tách câu (`SentenceSegmenter`) → `Chapter` + `List<Sentence>`.
+- Thứ tự: selector trong `site_rule` theo host → Readability. Nội dung < 200 ký tự → lỗi, mời chọn vùng thủ công.
+- `element-picker.js` cài `window.__ttsPicker`; Kotlin gọi `status/parent/selector/stop` qua `evaluateJavascript` (poll 500ms), không dùng JS bridge.
+
 ### HeadlessPageLoader
 - WebView không gắn vào UI để tải `nextUrl` khi bấm "Chương sau" từ thông báo (app ở nền). Cùng script Readability. Timeout 15s.
 
@@ -95,7 +101,7 @@ interface TtsEngine {
 | `bookmark` | id, url, title, createdAt |
 | `site_rule` | host (PK), contentSelector, updatedAt — selector từ chọn vùng thủ công |
 
-Schema Room export ra `app/schemas/` (Room Gradle plugin); thêm bảng ở phase sau bằng AutoMigration. Phase 2 đã có `history`, `bookmark`.
+Schema Room export ra `app/schemas/` (Room Gradle plugin); thêm bảng ở phase sau bằng AutoMigration. Phase 2 có `history`, `bookmark` (v1); Phase 3 thêm `site_rule` (v2).
 
 DataStore: `engine`, `systemVoice`, `edgeVoice`, `rate`, `pitch`, `fontSize`, `readerTheme`, `defaultSleepMinutes`.
 

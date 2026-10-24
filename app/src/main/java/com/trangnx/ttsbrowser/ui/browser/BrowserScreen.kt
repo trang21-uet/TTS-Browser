@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,13 +21,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trangnx.ttsbrowser.R
+import com.trangnx.ttsbrowser.extraction.asScriptRunner
 
 private enum class BrowserSheet { None, History, Bookmarks }
 
-/** Browser tab: address bar, progress, WebView (or the bookmark start page) and history/bookmark sheets. */
+/**
+ * Browser tab: address bar, progress, WebView (or the bookmark start page) with the "Đọc" overlay,
+ * and history/bookmark sheets.
+ */
 @Composable
 fun BrowserScreen(viewModel: BrowserViewModel, webView: WebView) {
+    val extractionViewModel: ExtractionViewModel = viewModel(factory = ExtractionViewModel.Factory)
+    val runner = remember(webView) { webView.asScriptRunner() }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     var sheet by rememberSaveable { mutableStateOf(BrowserSheet.None) }
@@ -67,16 +75,19 @@ fun BrowserScreen(viewModel: BrowserViewModel, webView: WebView) {
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            key(webView) {
-                AndroidView(
-                    factory = {
-                        // The WebView outlives this screen; detach it from a previous holder first.
-                        (webView.parent as? ViewGroup)?.removeView(webView)
-                        webView
-                    },
-                    onRelease = { (it.parent as? ViewGroup)?.removeView(it) },
-                    modifier = Modifier.fillMaxSize(),
-                )
+            Box(Modifier.fillMaxSize()) {
+                key(webView) {
+                    AndroidView(
+                        factory = {
+                            // The WebView outlives this screen; detach it from a previous holder first.
+                            (webView.parent as? ViewGroup)?.removeView(webView)
+                            webView
+                        },
+                        onRelease = { (it.parent as? ViewGroup)?.removeView(it) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                ExtractionOverlay(extractionViewModel, runner, state.url, onOpenUrl = open)
             }
         }
     }
