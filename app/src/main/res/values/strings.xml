@@ -4,7 +4,23 @@
     <string name="nav_browser">Trình duyệt</string>
     <string name="nav_library">Thư viện</string>
     <string name="nav_settings">Cài đặt</string>
-    <string name="placeholder_browser">Trình duyệt — sẽ làm ở Phase 2</string>
     <string name="placeholder_library">Thư viện trống</string>
     <string name="placeholder_settings">Cài đặt — sẽ làm ở Phase 8</string>
+
+    <string name="action_delete">Xóa</string>
+    <string name="action_clear_all">Xóa hết</string>
+
+    <string name="browser_address_hint">Nhập địa chỉ hoặc tìm kiếm</string>
+    <string name="browser_reload">Tải lại</string>
+    <string name="browser_stop">Dừng tải</string>
+    <string name="browser_menu">Tùy chọn</string>
+    <string name="browser_back">Lùi</string>
+    <string name="browser_forward">Tiến</string>
+    <string name="browser_bookmark_add">Thêm bookmark</string>
+    <string name="browser_bookmark_remove">Bỏ bookmark</string>
+    <string name="browser_history">Lịch sử</string>
+    <string name="browser_bookmarks">Bookmark</string>
+    <string name="browser_history_empty">Chưa có lịch sử</string>
+    <string name="browser_bookmarks_empty">Chưa có bookmark</string>
+    <string name="browser_start_empty">Nhập địa chỉ trang truyện ở thanh trên để bắt đầu. Trang đã bookmark sẽ hiện ở đây.</string>
 </resources>

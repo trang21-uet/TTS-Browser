@@ -5,7 +5,7 @@ Spec: [PDR](../../docs/project-overview-pdr.md) · [Architecture](../../docs/sys
 | Phase | File | Status |
 |-------|------|--------|
 | 1. Project setup | [phase-01-project-setup.md](phase-01-project-setup.md) | Done |
-| 2. Browser (WebView, address bar, history, bookmark) | phase-02 (tạo khi bắt đầu) | Pending |
+| 2. Browser (WebView, address bar, history, bookmark) | [phase-02-browser.md](phase-02-browser.md) | Done (chờ thử trên máy) |
 | 3. Extraction (Readability, cleaner, link finder, segmenter, element picker) | phase-03 | Pending |
 | 4. TTS core (engine, TtsPlayer, PlaybackService) | phase-04 | Pending |
 | 5. Reader UI (highlight, seek, theme, mini player) | phase-05 | Pending |

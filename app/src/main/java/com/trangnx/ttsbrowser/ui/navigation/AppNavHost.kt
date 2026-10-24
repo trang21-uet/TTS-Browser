@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.ui.browser.BrowserScreen
+import com.trangnx.ttsbrowser.ui.browser.BrowserViewModel
+import com.trangnx.ttsbrowser.ui.browser.rememberBrowserWebView
 import com.trangnx.ttsbrowser.ui.library.LibraryScreen
 import com.trangnx.ttsbrowser.ui.settings.SettingsScreen
 
@@ -36,6 +39,9 @@ private enum class TopLevelRoute(val route: String, @StringRes val label: Int, v
 
 @Composable
 fun AppNavHost() {
+    // Activity-scoped (outside NavHost) so the page survives switching tabs.
+    val browserViewModel: BrowserViewModel = viewModel(factory = BrowserViewModel.Factory)
+    val browserWebView = rememberBrowserWebView(browserViewModel)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
@@ -65,7 +71,7 @@ fun AppNavHost() {
             startDestination = TopLevelRoute.Browser.route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(TopLevelRoute.Browser.route) { BrowserScreen() }
+            composable(TopLevelRoute.Browser.route) { BrowserScreen(browserViewModel, browserWebView) }
             composable(TopLevelRoute.Library.route) { LibraryScreen() }
             composable(TopLevelRoute.Settings.route) { SettingsScreen() }
         }

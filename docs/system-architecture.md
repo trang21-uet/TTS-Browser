@@ -22,7 +22,7 @@
 ```
 app/src/main/java/com/trangnx/ttsbrowser/
 ├── ui/
-│   ├── browser/       BrowserScreen, BrowserViewModel, WebView wrapper
+│   ├── browser/       BrowserScreen, BrowserViewModel, BrowserWebView (WebView giữ ở AppNavHost, sống qua đổi tab), BrowserAddressBar, PageLinkList, UrlInputResolver
 │   ├── reader/        ReaderScreen (highlight câu), ReaderViewModel
 │   ├── library/       LibraryScreen, LibraryViewModel
 │   ├── settings/      SettingsScreen (engine, giọng, tốc độ, giao diện)
@@ -37,7 +37,7 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── data/
 │   ├── db/            AppDatabase, entities, DAOs
 │   ├── settings/      SettingsRepository (DataStore)
-│   └── repo/          LibraryRepository, ProgressRepository
+│   └── repo/          BrowsingRepository (history, bookmark), LibraryRepository, ProgressRepository
 └── di/                AppContainer
 ```
 
@@ -94,6 +94,8 @@ interface TtsEngine {
 | `history` | id, url, title, visitedAt |
 | `bookmark` | id, url, title, createdAt |
 | `site_rule` | host (PK), contentSelector, updatedAt — selector từ chọn vùng thủ công |
+
+Schema Room export ra `app/schemas/` (Room Gradle plugin); thêm bảng ở phase sau bằng AutoMigration. Phase 2 đã có `history`, `bookmark`.
 
 DataStore: `engine`, `systemVoice`, `edgeVoice`, `rate`, `pitch`, `fontSize`, `readerTheme`, `defaultSleepMinutes`.
 

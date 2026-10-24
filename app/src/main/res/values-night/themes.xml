@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window theme so WebView algorithmic darkening kicks in (targetSdk 33+). -->
+    <style name="Theme.TtsBrowser" parent="android:Theme.Material.NoActionBar" />
+</resources>
