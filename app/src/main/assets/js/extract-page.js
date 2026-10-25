@@ -80,6 +80,12 @@ function ttsExtractPage(args) {
     return clip(parts.join(" "), 200);
   }
 
+  // og:title (else <title>) usually reads "chapter - story - site": Kotlin picks the story name from it.
+  function pageTitle() {
+    var og = document.querySelector("meta[property='og:title']");
+    return clip((og && og.getAttribute("content")) || document.title, 300);
+  }
+
   function collectLinks() {
     var relNext = document.querySelector("link[rel~='next' i], a[rel~='next' i]");
     var relPrev = document.querySelector("link[rel~='prev' i], a[rel~='prev' i], link[rel~='previous' i], a[rel~='previous' i]");
@@ -118,6 +124,7 @@ function ttsExtractPage(args) {
       ok: !!content,
       url: location.href,
       title: content ? content.title : clip(document.title, 300),
+      pageTitle: pageTitle(),
       text: content ? content.text : "",
       source: source,
       selectorMissed: selectorMissed,

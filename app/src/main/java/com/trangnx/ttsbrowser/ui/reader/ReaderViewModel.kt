@@ -1,22 +1,31 @@
 package com.trangnx.ttsbrowser.ui.reader
 
+import android.database.SQLException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.trangnx.ttsbrowser.TtsBrowserApp
+import com.trangnx.ttsbrowser.data.db.BookEntity
+import com.trangnx.ttsbrowser.data.repo.LibraryRepository
 import com.trangnx.ttsbrowser.data.settings.ReaderSettings
 import com.trangnx.ttsbrowser.data.settings.ReaderTheme
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
+import com.trangnx.ttsbrowser.playback.SleepTimer
+import com.trangnx.ttsbrowser.playback.SleepTimerState
+import com.trangnx.ttsbrowser.text.BookTitleSuggester
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -29,6 +38,8 @@ import java.io.IOException
 class ReaderViewModel(
     private val playback: PlaybackConnection,
     private val settingsRepository: SettingsRepository,
+    private val library: LibraryRepository,
+    private val sleepTimer: SleepTimer,
 ) : ViewModel() {
 
     private val _shown = MutableStateFlow<LoadedChapter?>(null)
@@ -41,6 +52,28 @@ class ReaderViewModel(
     val isShownLoaded: StateFlow<Boolean> = combine(_shown, playback.loaded) { shown, _ ->
         shown != null && playback.isLoaded(shown)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** The saved story the shown chapter belongs to, if any. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val savedBook: StateFlow<BookEntity?> = _shown
+        .flatMapLatest { shown -> shown?.let { library.bookOf(it.chapter) } ?: flowOf(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val sleepTimerState: StateFlow<SleepTimerState> = sleepTimer.state
+
+    init {
+        viewModelScope.launch {
+            var previousUrl = playback.loaded.value?.chapter?.url
+            playback.loaded.collect { now ->
+                val url = now?.chapter?.url
+                // The player went on to another chapter by itself (the notification's next chapter): follow it.
+                if (now != null && previousUrl != null && url != previousUrl && _shown.value?.chapter?.url == previousUrl) {
+                    _shown.value = now
+                }
+                previousUrl = url
+            }
+        }
+    }
 
     /** Null until read, so the reader does not flash the default font size. */
     val settings: StateFlow<ReaderSettings?> = settingsRepository.readerSettings
@@ -61,6 +94,20 @@ class ReaderViewModel(
     /** Shows the player's chapter (mini player tap). */
     fun showLoaded() {
         playback.loaded.value?.let { _shown.value = it }
+    }
+
+    /**
+     * Opens a saved story's chapter (Library) at [startIndex], paused. A chapter that is already in the
+     * player keeps its live position: it is more recent than the saved one.
+     */
+    fun resume(chapter: LoadedChapter, startIndex: Int) {
+        _shown.value = chapter
+        if (playback.isLoaded(chapter)) {
+            playback.load(chapter)
+        } else {
+            playback.load(chapter, startIndex)
+            playback.pause()
+        }
     }
 
     /** Mini player: play/pause of the loaded chapter. */
@@ -86,6 +133,28 @@ class ReaderViewModel(
         if (isShownLoaded.value) playback.nextSentence()
     }
 
+    fun suggestedBookName(): String =
+        _shown.value?.chapter?.let { BookTitleSuggester.suggest(it.pageTitle, it.title) }.orEmpty()
+
+    /** Saves the shown chapter (at the playing sentence if the player has it) as story [name]. */
+    fun saveBook(name: String) {
+        val shown = _shown.value ?: return
+        val sentence = if (isShownLoaded.value) shown.sentences.getOrNull(playback.state.value.sentenceIndex) else null
+        viewModelScope.launch {
+            try {
+                library.saveBook(name, shown.chapter, sentence)
+            } catch (_: SQLException) {
+                // Storage failure: nothing saved, the menu still offers "Lưu truyện".
+            }
+        }
+    }
+
+    fun startSleepTimer(minutes: Int) = sleepTimer.startMinutes(minutes)
+
+    fun startSleepTimerAtChapterEnd() = sleepTimer.startEndOfChapter()
+
+    fun cancelSleepTimer() = sleepTimer.cancel()
+
     fun setFontSize(sp: Int) = save { it.setFontSize(sp) }
 
     fun setTheme(theme: ReaderTheme) = save { it.setReaderTheme(theme) }
@@ -107,7 +176,12 @@ class ReaderViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as TtsBrowserApp).container
-                ReaderViewModel(container.playbackConnection, container.settingsRepository)
+                ReaderViewModel(
+                    container.playbackConnection,
+                    container.settingsRepository,
+                    container.libraryRepository,
+                    container.sleepTimer,
+                )
             }
         }
     }

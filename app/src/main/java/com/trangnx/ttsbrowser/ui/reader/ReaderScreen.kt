@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -29,6 +31,8 @@ import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.extraction.ContentSource
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
+import com.trangnx.ttsbrowser.playback.SleepTimerState
+import com.trangnx.ttsbrowser.ui.player.SleepTimerSheet
 
 /** Browser-side actions the reader offers; the host navigates back to the browser for them. */
 class ReaderActions(
@@ -53,7 +57,11 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
     val isLoaded by viewModel.isShownLoaded.collectAsStateWithLifecycle()
     val playerState by viewModel.playbackState.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val savedBook by viewModel.savedBook.collectAsStateWithLifecycle()
+    val sleepTimer by viewModel.sleepTimerState.collectAsStateWithLifecycle()
     var showDisplay by rememberSaveable { mutableStateOf(false) }
+    var showSleepTimer by rememberSaveable { mutableStateOf(false) }
+    var showSave by rememberSaveable { mutableStateOf(false) }
 
     val current = shown
     if (current == null) {
@@ -82,11 +90,20 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
                         }
                     },
                     actions = {
+                        IconButton(onClick = { showSleepTimer = true }) {
+                            val active = sleepTimer != SleepTimerState.Off
+                            Icon(
+                                if (active) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                                stringResource(R.string.sleep_timer),
+                            )
+                        }
                         IconButton(onClick = { showDisplay = true }) {
                             Icon(Icons.Outlined.FormatSize, stringResource(R.string.reader_display))
                         }
                         ReaderMenu(
                             onOpenPage = { actions.onOpenPage(chapter.url) },
+                            saved = savedBook != null,
+                            onSave = { showSave = true },
                             onPickOther = actions.onPickOther.takeIf { samePage != null },
                             onClearRule = actions.onClearRule.takeIf { samePage?.chapter?.source == ContentSource.Selector },
                         )
@@ -113,6 +130,25 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
                 modifier = Modifier.padding(padding),
             )
         }
+        if (showSave) {
+            SaveBookDialog(
+                suggestedName = remember { viewModel.suggestedBookName() },
+                onSave = {
+                    viewModel.saveBook(it)
+                    showSave = false
+                },
+                onDismiss = { showSave = false },
+            )
+        }
+        if (showSleepTimer) {
+            SleepTimerSheet(
+                state = sleepTimer,
+                onMinutes = viewModel::startSleepTimer,
+                onEndOfChapter = viewModel::startSleepTimerAtChapterEnd,
+                onOff = viewModel::cancelSleepTimer,
+                onDismiss = { showSleepTimer = false },
+            )
+        }
         if (showDisplay) {
             ReaderDisplaySheet(
                 settings = readerSettings,
@@ -127,7 +163,13 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
 
 /** Overflow menu; null actions are hidden. */
 @Composable
-private fun ReaderMenu(onOpenPage: () -> Unit, onPickOther: (() -> Unit)?, onClearRule: (() -> Unit)?) {
+private fun ReaderMenu(
+    onOpenPage: () -> Unit,
+    saved: Boolean,
+    onSave: () -> Unit,
+    onPickOther: (() -> Unit)?,
+    onClearRule: (() -> Unit)?,
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -142,6 +184,11 @@ private fun ReaderMenu(onOpenPage: () -> Unit, onPickOther: (() -> Unit)?, onCle
                         onClick()
                     },
                 )
+            }
+            if (saved) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.reader_saved_book)) }, onClick = {}, enabled = false)
+            } else {
+                item(R.string.reader_save_book, onSave)
             }
             item(R.string.reader_open_page, onOpenPage)
             onPickOther?.let { item(R.string.extract_pick_other, it) }

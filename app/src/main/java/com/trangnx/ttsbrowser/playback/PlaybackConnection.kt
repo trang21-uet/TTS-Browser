@@ -50,15 +50,19 @@ class PlaybackConnection(context: Context, private val player: TtsPlayer) {
     }
 
     /**
-     * Makes [chapter] the player's queue, keeping the play/pause state. Already loaded: only its
-     * metadata (title, links, source) is refreshed and the position is kept.
+     * Makes [chapter] the player's queue (at [startIndex]), keeping the play/pause state. Already
+     * loaded: only its metadata (title, links, source) is refreshed and the position is kept.
      */
-    fun load(chapter: LoadedChapter) {
-        if (!isLoaded(chapter)) player.setChapter(chapter.chapter, chapter.sentences)
+    fun load(chapter: LoadedChapter, startIndex: Int = 0) {
+        val changed = !isLoaded(chapter)
+        // First, so a listener never sees the new chapter's sentence index next to the old chapter.
         _loaded.value = chapter
+        if (changed) player.setChapter(chapter.chapter, chapter.sentences, startIndex)
     }
 
     fun togglePlayPause() = withController(retry = true) { Util.handlePlayPauseButtonAction(it) }
+
+    fun pause() = withController(retry = true) { it.pause() }
 
     /** Reads from sentence [index]. */
     fun playFrom(index: Int) = withController(retry = true) {

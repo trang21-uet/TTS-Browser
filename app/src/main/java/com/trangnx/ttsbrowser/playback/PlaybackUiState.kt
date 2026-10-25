@@ -16,6 +16,8 @@ data class PlaybackUiState(
     /** Same rule as the notification: play while paused, ended, idle or suppressed. */
     val showPlay: Boolean = true,
     val isBuffering: Boolean = false,
+    /** The whole chapter has been read. */
+    val isEnded: Boolean = false,
     val error: String? = null,
 )
 
@@ -24,5 +26,6 @@ internal fun Player.toUiState() = PlaybackUiState(
     sentenceIndex = currentMediaItemIndex,
     showPlay = Util.shouldShowPlayButton(this),
     isBuffering = playbackState == Player.STATE_BUFFERING,
+    isEnded = playbackState == Player.STATE_ENDED,
     error = playerError?.message,
 )

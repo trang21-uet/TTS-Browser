@@ -103,15 +103,10 @@ private fun ReadFab(extracting: Boolean, onClick: () -> Unit, modifier: Modifier
 
 @Composable
 private fun ExtractionFailedDialog(reason: ExtractionResult.Reason, onPick: () -> Unit, onDismiss: () -> Unit) {
-    val message = when (reason) {
-        ExtractionResult.Reason.NoContent -> R.string.extract_failed_no_content
-        ExtractionResult.Reason.TooShort -> R.string.extract_failed_too_short
-        ExtractionResult.Reason.ScriptError -> R.string.extract_failed_script
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.extract_failed_title)) },
-        text = { Text(stringResource(message) + "\n\n" + stringResource(R.string.extract_failed_hint)) },
+        text = { Text(stringResource(reason.message) + "\n\n" + stringResource(R.string.extract_failed_hint)) },
         confirmButton = { TextButton(onClick = onPick) { Text(stringResource(R.string.extract_pick_manual)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
     )

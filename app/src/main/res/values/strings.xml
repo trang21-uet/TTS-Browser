@@ -4,7 +4,6 @@
     <string name="nav_browser">Trình duyệt</string>
     <string name="nav_library">Thư viện</string>
     <string name="nav_settings">Cài đặt</string>
-    <string name="placeholder_library">Thư viện trống</string>
     <string name="placeholder_settings">Cài đặt — sẽ làm ở Phase 8</string>
 
     <string name="action_delete">Xóa</string>
@@ -35,6 +34,7 @@
     <string name="extract_failed_title">Không trích được nội dung</string>
     <string name="extract_failed_no_content">Không tìm thấy nội dung chính trên trang này.</string>
     <string name="extract_failed_too_short">Nội dung trích được quá ngắn (dưới 200 ký tự).</string>
+    <string name="extract_failed_load">Không tải được trang. Kiểm tra mạng rồi thử lại, hoặc mở trang trong trình duyệt trước.</string>
     <string name="extract_failed_script">Lỗi khi chạy trích nội dung. Hãy thử lại khi trang đã tải xong.</string>
     <string name="extract_failed_hint">Bạn có thể chạm chọn khối nội dung trên trang.</string>
     <string name="extract_pick_manual">Chọn vùng thủ công</string>
@@ -52,6 +52,8 @@
     <string name="playback_error_speak">TTS hệ thống báo lỗi khi đọc (mã %1$d)</string>
     <string name="playback_error_connect">Không kết nối được dịch vụ phát</string>
 
+    <string name="next_chapter_none">Chương này không có chương sau</string>
+
     <string name="player_play">Phát</string>
     <string name="player_pause">Tạm dừng</string>
     <string name="player_previous">Câu trước</string>
@@ -68,4 +70,22 @@
     <string name="reader_theme_light">Sáng</string>
     <string name="reader_theme_dark">Tối</string>
     <string name="reader_theme_sepia">Sepia</string>
+
+    <string name="reader_save_book">Lưu truyện</string>
+    <string name="reader_saved_book">Đã lưu trong thư viện</string>
+    <string name="reader_save_title">Lưu vào thư viện</string>
+    <string name="reader_save_name">Tên truyện</string>
+    <string name="action_save">Lưu</string>
+
+    <string name="sleep_timer">Hẹn giờ tắt</string>
+    <string name="sleep_timer_minutes">%1$d phút</string>
+    <string name="sleep_timer_end_of_chapter">Hết chương</string>
+    <string name="sleep_timer_off">Tắt hẹn giờ</string>
+    <string name="sleep_timer_remaining">Còn khoảng %1$d phút</string>
+    <string name="sleep_timer_end_of_chapter_active">Sẽ dừng khi hết chương</string>
+
+    <string name="library_empty">Thư viện trống. Mở một chương truyện, bấm Đọc rồi chọn Lưu truyện ở menu.</string>
+    <string name="library_reading">Đang ở: %1$s</string>
+    <string name="library_delete_title">Xóa khỏi thư viện?</string>
+    <string name="library_delete_message">Chỉ xóa truyện và vị trí đã lưu trong app, không ảnh hưởng trang web.</string>
 </resources>

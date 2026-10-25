@@ -11,6 +11,8 @@ data class Chapter(
     val prevUrl: String?,
     val nextUrl: String?,
     val source: ContentSource,
+    /** The page's `og:title` / `<title>`: usually also names the story and the site, see `BookTitleSuggester`. */
+    val pageTitle: String = "",
 ) {
     val length: Int get() = paragraphs.sumOf { it.length }
 }

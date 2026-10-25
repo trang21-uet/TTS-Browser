@@ -39,6 +39,7 @@ import com.trangnx.ttsbrowser.ui.browser.PageRequest
 import com.trangnx.ttsbrowser.ui.browser.pageOf
 import com.trangnx.ttsbrowser.ui.browser.rememberBrowserWebView
 import com.trangnx.ttsbrowser.ui.library.LibraryScreen
+import com.trangnx.ttsbrowser.ui.library.LibraryViewModel
 import com.trangnx.ttsbrowser.ui.player.MiniPlayerBar
 import com.trangnx.ttsbrowser.ui.reader.ReaderActions
 import com.trangnx.ttsbrowser.ui.reader.ReaderScreen
@@ -62,6 +63,7 @@ fun AppNavHost() {
     val browserViewModel: BrowserViewModel = viewModel(factory = BrowserViewModel.Factory)
     val extractionViewModel: ExtractionViewModel = viewModel(factory = ExtractionViewModel.Factory)
     val readerViewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory)
+    val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory)
     val browserWebView = rememberBrowserWebView(browserViewModel)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -102,6 +104,14 @@ fun AppNavHost() {
         }
     }
 
+    // A saved story finished loading: the reader opens above whichever tab the user is on by then.
+    LaunchedEffect(libraryViewModel) {
+        libraryViewModel.resume.collect { request ->
+            readerViewModel.resume(request.chapter, request.startIndex)
+            navController.openReader()
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (currentDestination?.route != READER_ROUTE) {
@@ -120,7 +130,7 @@ fun AppNavHost() {
             composable(TopLevelRoute.Browser.route) {
                 BrowserScreen(browserViewModel, extractionViewModel, browserWebView, Modifier.padding(innerPadding))
             }
-            composable(TopLevelRoute.Library.route) { Box(Modifier.padding(innerPadding)) { LibraryScreen() } }
+            composable(TopLevelRoute.Library.route) { Box(Modifier.padding(innerPadding)) { LibraryScreen(libraryViewModel) } }
             composable(TopLevelRoute.Settings.route) { Box(Modifier.padding(innerPadding)) { SettingsScreen() } }
             composable(READER_ROUTE) {
                 val pageResult by extractionViewModel.pageResult.collectAsStateWithLifecycle()

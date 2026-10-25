@@ -1,6 +1,5 @@
 package com.trangnx.ttsbrowser.ui.browser
 
-import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -9,7 +8,6 @@ import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
@@ -24,6 +22,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import com.trangnx.ttsbrowser.extraction.applyPageDefaults
 
 /** Page events forwarded from the WebView clients. */
 interface BrowserPageListener {
@@ -71,15 +70,10 @@ fun rememberBrowserWebView(listener: BrowserPageListener): WebView {
     return webView
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 private fun createBrowserWebView(context: Context, listener: BrowserPageListener, onRenderGone: () -> Unit): WebView =
     WebView(context).apply {
+        settings.applyPageDefaults()
         settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            allowFileAccess = false
-            allowContentAccess = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             loadWithOverviewMode = true
             useWideViewPort = true
             builtInZoomControls = true

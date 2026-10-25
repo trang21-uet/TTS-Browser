@@ -14,7 +14,8 @@ sealed interface ExtractionResult {
 
     data class Failure(val reason: Reason, val detail: String? = null) : ExtractionResult
 
-    enum class Reason { NoContent, TooShort, ScriptError }
+    /** [LoadFailed]: the page itself did not load (headless loading only). */
+    enum class Reason { NoContent, TooShort, ScriptError, LoadFailed }
 }
 
 /**
@@ -83,6 +84,7 @@ class ReadabilityExtractor(
             prevUrl = links.prevUrl,
             nextUrl = links.nextUrl,
             source = raw.source,
+            pageTitle = raw.pageTitle,
         )
     }
 
