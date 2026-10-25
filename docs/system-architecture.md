@@ -30,10 +30,10 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, ElementPicker (chọn vùng thủ công), HeadlessPageLoader (Phase 6)
 ├── text/              SentenceSegmenter, Sentence
 ├── tts/
-│   ├── TtsEngine.kt          interface chung
-│   ├── system/               SystemTtsEngine
+│   ├── TtsEngine.kt          interface chung (+ TtsEvent, TtsInitException)
+│   ├── system/               SystemTtsEngine, UtteranceId
 │   └── edge/                 EdgeTtsEngine, EdgeTtsClient (WebSocket), EdgeTokenGenerator
-├── playback/          PlaybackService (MediaSessionService), TtsPlayer (SimpleBasePlayer), SleepTimer, AudioFocusHandler
+├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController), TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer (Phase 6)
 ├── data/
 │   ├── db/            AppDatabase, entities, DAOs
 │   ├── settings/      SettingsRepository (DataStore)
@@ -64,22 +64,26 @@ flowchart LR
 ### TtsEngine (interface)
 ```kotlin
 interface TtsEngine {
-    val events: Flow<TtsEvent>          // Started(index), Done(index), Error(index, cause)
-    suspend fun init(): Result<Unit>
+    val events: Flow<TtsEvent>          // Started(index), Done(index), Error(index, code) — chỉ của lần speak hiện tại
+    suspend fun init(): Result<Unit>    // lỗi: TtsInitException(EngineUnavailable | LanguageUnsupported)
     fun speak(sentences: List<Sentence>, fromIndex: Int)
-    fun pause(); fun resume(); fun stop()
-    fun setRate(rate: Float); fun setPitch(pitch: Float)
-    suspend fun voices(): List<VoiceInfo>
+    fun stop()
+    fun setRate(rate: Float); fun setPitch(pitch: Float)   // áp dụng từ lần speak sau
     fun release()
 }
 ```
-- **SystemTtsEngine:** queue từng câu với `QUEUE_ADD`, `utteranceId = index`; `UtteranceProgressListener.onStart` → `Started(index)`. Pause = `stop()` + nhớ index (TTS hệ thống không có pause thật). Đặt `AudioAttributes(USAGE_MEDIA, CONTENT_TYPE_SPEECH)`.
+Không có pause/resume trong interface: player pause = `stop()` + nhớ index, resume = `speak` từ câu hiện tại. Danh sách giọng (`voices()`) thêm khi làm Settings.
+- **SystemTtsEngine:** `setLanguage(vi-VN)` (thiếu dữ liệu → lỗi), queue cuốn chiếu 5 câu với `QUEUE_ADD` (nạp thêm ở mỗi `onDone`), `speak()` bị từ chối → `Failed`, `utteranceId = "<generation>:<index>"`; generation tăng mỗi `speak/stop`, event lọc theo generation ở collector (main thread) → bỏ callback trễ. Đặt `AudioAttributes(USAGE_MEDIA, CONTENT_TYPE_SPEECH)`.
 - **EdgeTtsEngine:** mỗi câu → SSML (voice, rate, pitch) → WebSocket `speech.platform.bing.com/.../readaloud/edge/v1` → nhận MP3 → đưa vào ExoPlayer playlist (mỗi câu 1 `MediaItem` từ byte array). Prefetch N=3 câu, cache LRU theo hash(text+voice+rate). Token `Sec-MS-GEC` sinh theo timestamp (tham khảo thư viện Python `edge-tts`).
 
-### TtsPlayer (SimpleBasePlayer)
+### TtsPlayer (SimpleBasePlayer) — Phase 4
 - Bọc engine thành `Player` của Media3 → MediaSession tự xử lý thông báo, lock screen, nút tai nghe.
-- `seekToNext/Previous` = câu sau/trước; custom command "Chương sau", "Hẹn giờ".
-- Expose `StateFlow<PlaybackUiState>` (index câu, đang phát, chương) cho UI.
+- **Mỗi câu = 1 MediaItem** (`buildSentencePlaylist`, title = tên chương, artist = "Câu i/n") → `seekToNext/Previous` = câu sau/trước, `seekTo(index)` = nhảy câu. UI đọc index câu từ `currentMediaItemIndex` qua `MediaController` (không cần StateFlow riêng).
+- Singleton trong `AppContainer`; UI nạp chương bằng `setChapter()` rồi `PlaybackConnection` gọi `MediaController.play()` (bind `PlaybackService`, Media3 tự lên foreground khi phát). Service `onDestroy` → `player.stop()`, không release player.
+- `SpeechDriver`: tạo engine khi phát lần đầu (state BUFFERING, init timeout 15s), giải phóng khi stop/lỗi/hết chương; lỗi 1 câu bỏ qua, 3 lỗi liên tiếp hoặc 90s không callback → `playerError`.
+- `PlaybackConnection.release()` khi task bị gỡ (`onTaskRemoved`) để service dừng được.
+- Audio focus (`AudioFocusHandler`, pause khi bị duck), mất focus tạm → suppression `TRANSIENT_AUDIO_FOCUS_LOSS`; `BecomingNoisyReceiver` → pause.
+- Phase 6: custom command "Chương sau", "Hẹn giờ".
 
 ### Trích nội dung (Phase 3)
 - `assets/js/`: `Readability.js` (Mozilla 0.6.0, Apache-2.0), `extract-page.js`, `element-picker.js`.
@@ -107,7 +111,8 @@ DataStore: `engine`, `systemVoice`, `edgeVoice`, `rate`, `pitch`, `fontSize`, `r
 
 ## 6. Quyền & Manifest
 
-- `INTERNET`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `POST_NOTIFICATIONS` (Android 13+), `WAKE_LOCK` (ExoPlayer), `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (sideload, không vướng chính sách Play).
+- Đã có (Phase 4): `INTERNET`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`. Thông báo media session được miễn `POST_NOTIFICATIONS` (Android 13+) nên không xin.
+- Sau: `WAKE_LOCK` (ExoPlayer, Phase 7), `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (Phase 8, sideload, không vướng chính sách Play).
 - `<service android:name=".playback.PlaybackService" android:foregroundServiceType="mediaPlayback" android:exported="true">` với intent-filter `androidx.media3.session.MediaSessionService`.
 - `<queries>` intent `android.intent.action.TTS_SERVICE` để liệt kê engine TTS (Android 11+).
 

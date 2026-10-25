@@ -68,6 +68,7 @@ fun BoxScope.ExtractionOverlay(
         is ExtractionUiState.Ready -> ExtractionResultSheet(
             result = current.result,
             onDismiss = viewModel::dismiss,
+            onListen = viewModel::listen,
             onOpenUrl = { url ->
                 viewModel.dismiss()
                 onOpenUrl(url)

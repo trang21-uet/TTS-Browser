@@ -7,7 +7,7 @@
 | 1 | Khởi tạo project: Gradle KTS, version catalog, Compose, Navigation, AppContainer, theme | — | Xong |
 | 2 | Trình duyệt: WebView, thanh địa chỉ/tìm kiếm, back/forward, lịch sử, bookmark | 1 | Xong (chờ thử trên máy) |
 | 3 | Trích nội dung: Readability.js, TextCleaner, ChapterLinkFinder, SentenceSegmenter, ElementPicker + site_rule + unit test (fixture akaytruyen.com) | 2 | Xong (chờ thử trên máy) |
-| 4 | Lõi TTS: TtsEngine, SystemTtsEngine, TtsPlayer, PlaybackService, MediaSession, audio focus | 3 | Chưa bắt đầu |
+| 4 | Lõi TTS: TtsEngine, SystemTtsEngine, TtsPlayer, PlaybackService, MediaSession, audio focus | 3 | Xong (chờ thử trên máy) |
 | 5 | Reader UI: highlight câu, auto-scroll, chạm để seek, cỡ chữ/theme, mini player | 4 | Chưa bắt đầu |
 | 6 | Thư viện & tiến độ: Room, lưu/khôi phục vị trí, hẹn giờ tắt, HeadlessPageLoader (chương sau) | 5 | Chưa bắt đầu |
 | 7 | Edge TTS: WebSocket client, token, prefetch, cache, fallback | 4 | Chưa bắt đầu |

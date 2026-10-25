@@ -7,6 +7,9 @@ import com.trangnx.ttsbrowser.data.repo.SiteRuleRepository
 import com.trangnx.ttsbrowser.extraction.ElementPicker
 import com.trangnx.ttsbrowser.extraction.ExtractionScripts
 import com.trangnx.ttsbrowser.extraction.ReadabilityExtractor
+import com.trangnx.ttsbrowser.playback.PlaybackConnection
+import com.trangnx.ttsbrowser.playback.TtsPlayer
+import com.trangnx.ttsbrowser.tts.system.SystemTtsEngine
 
 /**
  * Manual dependency container. Repositories, TTS engines and other singletons
@@ -29,4 +32,9 @@ class AppContainer(context: Context) {
     }
 
     val elementPicker: ElementPicker by lazy { ElementPicker(extractionScripts) }
+
+    /** App-wide player; [com.trangnx.ttsbrowser.playback.PlaybackService] puts it in a MediaSession. */
+    val ttsPlayer: TtsPlayer by lazy { TtsPlayer(appContext) { SystemTtsEngine(appContext) } }
+
+    val playbackConnection: PlaybackConnection by lazy { PlaybackConnection(appContext, ttsPlayer) }
 }

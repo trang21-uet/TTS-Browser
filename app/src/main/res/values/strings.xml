@@ -46,4 +46,11 @@
     <string name="picker_expand">Mở rộng</string>
     <string name="picker_confirm">Xác nhận</string>
     <string name="picker_cancel">Hủy</string>
+
+    <string name="extract_listen">Nghe</string>
+    <string name="playback_sentence_position">Câu %1$d/%2$d</string>
+    <string name="playback_error_engine">Không khởi động được TTS hệ thống. Hãy cài Google TTS (Dịch vụ lời nói của Google).</string>
+    <string name="playback_error_language">Engine TTS chưa có giọng tiếng Việt. Hãy tải dữ liệu giọng tiếng Việt trong cài đặt Chuyển văn bản sang lời nói.</string>
+    <string name="playback_error_speak">TTS hệ thống báo lỗi khi đọc (mã %1$d)</string>
+    <string name="playback_error_connect">Không kết nối được dịch vụ phát</string>
 </resources>

@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NavigateBefore
 import androidx.compose.material.icons.automirrored.outlined.NavigateNext
+import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +27,7 @@ import com.trangnx.ttsbrowser.extraction.ContentSource
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
 
 /**
- * Preview of the extracted chapter, to check extraction on real sites.
+ * Preview of the extracted chapter, to check extraction on real sites; "Nghe" reads it aloud.
  * Replaced by the reader screen in Phase 5.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +35,7 @@ import com.trangnx.ttsbrowser.extraction.ExtractionResult
 fun ExtractionResultSheet(
     result: ExtractionResult.Success,
     onDismiss: () -> Unit,
+    onListen: () -> Unit,
     onOpenUrl: (String) -> Unit,
     onPickOther: () -> Unit,
     onClearRule: () -> Unit,
@@ -60,6 +63,15 @@ fun ExtractionResultSheet(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
+                }
+                Button(
+                    onClick = onListen,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Icon(Icons.Outlined.Headphones, contentDescription = null)
+                    Text(stringResource(R.string.extract_listen), Modifier.padding(start = 8.dp))
                 }
                 ChapterNavRow(chapter.prevUrl, chapter.nextUrl, onOpenUrl)
                 Row(Modifier.padding(horizontal = 8.dp)) {

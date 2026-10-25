@@ -13,6 +13,7 @@ import com.trangnx.ttsbrowser.extraction.PageScriptRunner
 import com.trangnx.ttsbrowser.extraction.PickedElement
 import com.trangnx.ttsbrowser.extraction.PickerStatus
 import com.trangnx.ttsbrowser.extraction.ReadabilityExtractor
+import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,7 @@ class ExtractionViewModel(
     private val extractor: ReadabilityExtractor,
     private val picker: ElementPicker,
     private val siteRules: SiteRuleRepository,
+    private val playback: PlaybackConnection,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ExtractionUiState>(ExtractionUiState.Idle)
@@ -55,6 +57,12 @@ class ExtractionViewModel(
     private var pageUrl: String? = null
 
     fun extract(runner: PageScriptRunner, url: String) = launch { runExtraction(runner, url) }
+
+    /** Reads the extracted chapter aloud from the first sentence. */
+    fun listen() {
+        val result = (_state.value as? ExtractionUiState.Ready)?.result ?: return
+        playback.play(result.chapter, result.sentences)
+    }
 
     fun dismiss() {
         job?.cancel()
@@ -175,7 +183,12 @@ class ExtractionViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as TtsBrowserApp).container
-                ExtractionViewModel(container.readabilityExtractor, container.elementPicker, container.siteRuleRepository)
+                ExtractionViewModel(
+                    container.readabilityExtractor,
+                    container.elementPicker,
+                    container.siteRuleRepository,
+                    container.playbackConnection,
+                )
             }
         }
     }
