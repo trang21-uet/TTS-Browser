@@ -6,12 +6,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.NavigateBefore
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +37,11 @@ fun ReaderControls(
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
+    prevChapterUrl: String?,
+    nextChapterUrl: String?,
+    openingChapter: Boolean,
+    chapterError: String?,
+    onOpenChapter: (String) -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
@@ -41,6 +51,18 @@ fun ReaderControls(
                 .navigationBarsPadding()
                 .padding(vertical = 8.dp),
         ) {
+            if (openingChapter) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (chapterError != null) {
+                Text(
+                    chapterError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
             if (state.error != null) {
                 Text(
                     state.error,
@@ -50,13 +72,31 @@ fun ReaderControls(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                OutlinedIconButton(
+                    onClick = { prevChapterUrl?.let(onOpenChapter) },
+                    enabled = !openingChapter && prevChapterUrl != null,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.NavigateBefore, stringResource(R.string.extract_prev))
+                }
                 IconButton(onClick = onPrevious) {
                     Icon(Icons.Filled.SkipPrevious, stringResource(R.string.player_previous))
                 }
                 PlayPauseButton(state, onTogglePlay, filled = true)
                 IconButton(onClick = onNext) {
                     Icon(Icons.Filled.SkipNext, stringResource(R.string.player_next))
+                }
+                OutlinedIconButton(
+                    onClick = { nextChapterUrl?.let(onOpenChapter) },
+                    enabled = !openingChapter && nextChapterUrl != null,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.NavigateNext, stringResource(R.string.extract_next))
                 }
             }
             Text(

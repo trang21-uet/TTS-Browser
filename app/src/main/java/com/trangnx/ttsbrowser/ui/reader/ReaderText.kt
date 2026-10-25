@@ -59,13 +59,13 @@ fun ReaderText(
     fontSizeSp: Int,
     note: String?,
     onSentenceClick: (Int) -> Unit,
-    onOpenChapter: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val chapter = loaded.chapter
     val spans = remember(loaded) { sentenceSpansByParagraph(chapter.paragraphs, loaded.sentences) }
     val current = loaded.sentences.getOrNull(currentIndex)
     val listState = rememberLazyListState()
+    LaunchedEffect(chapter.url) { listState.scrollToItem(0) }
     // Not state: read by the scroll effect only, written during layout. A new font size starts an
     // empty map, so the effect never measures with layouts of the old size.
     val layouts = remember(loaded, fontSizeSp) { HashMap<Int, TextLayoutResult>() }
@@ -114,7 +114,6 @@ fun ReaderText(
                     onLayout = { layouts[index] = it },
                 )
             }
-            item { ChapterNavRow(chapter.prevUrl, chapter.nextUrl, onOpenChapter) }
         }
         if (!follow) {
             SmallFloatingActionButton(

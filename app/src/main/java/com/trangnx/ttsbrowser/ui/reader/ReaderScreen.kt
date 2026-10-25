@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,12 +34,11 @@ import com.trangnx.ttsbrowser.extraction.ExtractionResult
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
 import com.trangnx.ttsbrowser.playback.SleepTimerState
 import com.trangnx.ttsbrowser.ui.player.SleepTimerSheet
+import com.trangnx.ttsbrowser.ui.browser.message
 
 /** Browser-side actions the reader offers; the host navigates back to the browser for them. */
 class ReaderActions(
     val onBack: () -> Unit,
-    /** Previous/next chapter: load it in the browser and extract it. */
-    val onOpenChapter: (String) -> Unit,
     /** Show the chapter's page in the browser. */
     val onOpenPage: (String) -> Unit,
     val onPickOther: () -> Unit,
@@ -59,6 +59,11 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val savedBook by viewModel.savedBook.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimerState.collectAsStateWithLifecycle()
+    val openingChapter by viewModel.openingChapter.collectAsStateWithLifecycle()
+    val chapterError by viewModel.chapterError.collectAsStateWithLifecycle()
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.cancelChapterNavigation() }
+    }
     var showDisplay by rememberSaveable { mutableStateOf(false) }
     var showSleepTimer by rememberSaveable { mutableStateOf(false) }
     var showSave by rememberSaveable { mutableStateOf(false) }
@@ -117,6 +122,11 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
                     onPrevious = viewModel::previousSentence,
                     onTogglePlay = viewModel::togglePlayPause,
                     onNext = viewModel::nextSentence,
+                    prevChapterUrl = chapter.prevUrl,
+                    nextChapterUrl = chapter.nextUrl,
+                    openingChapter = openingChapter,
+                    chapterError = chapterError?.let { stringResource(it.message) },
+                    onOpenChapter = viewModel::openChapter,
                 )
             },
         ) { padding ->
@@ -126,7 +136,6 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
                 fontSizeSp = readerSettings.fontSizeSp,
                 note = note?.let { stringResource(it) },
                 onSentenceClick = viewModel::playFrom,
-                onOpenChapter = actions.onOpenChapter,
                 modifier = Modifier.padding(padding),
             )
         }

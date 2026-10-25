@@ -12,6 +12,8 @@ import com.trangnx.ttsbrowser.data.repo.LibraryRepository
 import com.trangnx.ttsbrowser.data.settings.ReaderSettings
 import com.trangnx.ttsbrowser.data.settings.ReaderTheme
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
+import com.trangnx.ttsbrowser.extraction.ExtractionResult
+import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
@@ -19,6 +21,8 @@ import com.trangnx.ttsbrowser.playback.SleepTimer
 import com.trangnx.ttsbrowser.playback.SleepTimerState
 import com.trangnx.ttsbrowser.text.BookTitleSuggester
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,10 +44,56 @@ class ReaderViewModel(
     private val settingsRepository: SettingsRepository,
     private val library: LibraryRepository,
     private val sleepTimer: SleepTimer,
+    private val chapterLoader: HeadlessPageLoader,
 ) : ViewModel() {
 
     private val _shown = MutableStateFlow<LoadedChapter?>(null)
     val shown: StateFlow<LoadedChapter?> = _shown.asStateFlow()
+
+    private val _openingChapter = MutableStateFlow(false)
+    val openingChapter: StateFlow<Boolean> = _openingChapter.asStateFlow()
+    private val _chapterError = MutableStateFlow<ExtractionResult.Reason?>(null)
+    val chapterError: StateFlow<ExtractionResult.Reason?> = _chapterError.asStateFlow()
+    private var chapterJob: Job? = null
+    private var chapterRequest = 0L
+
+    /** Loads an adjacent chapter without leaving the reader or replacing unrelated playback. */
+    fun openChapter(url: String) {
+        val from = _shown.value ?: return
+        if (_openingChapter.value || url == from.chapter.url) return
+        if (url != from.chapter.prevUrl && url != from.chapter.nextUrl) return
+        val request = ++chapterRequest
+        _openingChapter.value = true
+        _chapterError.value = null
+        chapterJob = viewModelScope.launch {
+            try {
+                val result = chapterLoader.load(url)
+                // The reader or player may have moved on while the page was loading.
+                if (request != chapterRequest || _shown.value !== from) return@launch
+                when (result) {
+                    is ExtractionResult.Success -> show(LoadedChapter(result.chapter, result.sentences), continuing = true)
+                    is ExtractionResult.Failure -> _chapterError.value = result.reason
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                if (request == chapterRequest && _shown.value === from) {
+                    _chapterError.value = ExtractionResult.Reason.LoadFailed
+                }
+            } finally {
+                if (request == chapterRequest) _openingChapter.value = false
+            }
+        }
+    }
+
+    /** Leaving the reader cancels its pending navigation and destroys the temporary WebView. */
+    fun cancelChapterNavigation() {
+        chapterRequest++
+        chapterJob?.cancel()
+        chapterJob = null
+        _openingChapter.value = false
+        _chapterError.value = null
+    }
 
     val loaded: StateFlow<LoadedChapter?> = playback.loaded
     val playbackState: StateFlow<PlaybackUiState> = playback.state
@@ -181,6 +231,7 @@ class ReaderViewModel(
                     container.settingsRepository,
                     container.libraryRepository,
                     container.sleepTimer,
+                    container.headlessPageLoader,
                 )
             }
         }

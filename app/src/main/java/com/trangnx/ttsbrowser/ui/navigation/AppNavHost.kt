@@ -111,10 +111,6 @@ fun AppNavHost() {
         }
         ReaderActions(
             onBack = { navController.popBackStack(READER_ROUTE, inclusive = true) },
-            onOpenChapter = { url ->
-                extractionViewModel.request(PageRequest.ExtractWhenLoaded(url, fromUrl = browserWebView.url))
-                showPage(url)
-            },
             onOpenPage = showPage,
             onPickOther = {
                 extractionViewModel.request(PageRequest.Pick)
