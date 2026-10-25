@@ -42,6 +42,9 @@ interface TtsEngine {
     /** Applies from the next [speak] call. */
     fun setPitch(pitch: Float)
 
+    /** Live gain when supported (Edge); system TTS keeps its own utterance volume. */
+    fun setVolume(volume: Float) = Unit
+
     fun release()
 
     companion object {

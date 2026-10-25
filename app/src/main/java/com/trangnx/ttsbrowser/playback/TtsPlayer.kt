@@ -49,6 +49,17 @@ class TtsPlayer(
 
     private val speech = SpeechDriver(scope, engineFactory, SpeechListener())
 
+    /** Engine/voice changes take effect immediately, preserving the sentence and play intent. */
+    fun configureSpeech(rate: Float, pitch: Float, replaceEngine: Boolean) {
+        val next = PlaybackParameters(rate, pitch)
+        if (!replaceEngine && next == parameters) return
+        parameters = next
+        if (replaceEngine) speech.release()
+        sync(restartSpeech = true)
+    }
+
+    fun setSpeechVolume(volume: Float) = speech.setVolume(volume)
+
     /** Replaces the queue with [chapter]; keeps the play/pause state. */
     fun setChapter(chapter: Chapter, sentences: List<Sentence>, startIndex: Int = 0) {
         speech.stopSpeaking()

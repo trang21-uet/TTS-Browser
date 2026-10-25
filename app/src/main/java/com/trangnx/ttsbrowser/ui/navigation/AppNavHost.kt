@@ -12,6 +12,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
@@ -31,6 +37,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.trangnx.ttsbrowser.R
+import com.trangnx.ttsbrowser.TtsBrowserApp
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 import com.trangnx.ttsbrowser.ui.browser.BrowserScreen
 import com.trangnx.ttsbrowser.ui.browser.BrowserViewModel
@@ -58,6 +65,16 @@ private const val READER_ROUTE = "reader"
 
 @Composable
 fun AppNavHost() {
+    val appContext = LocalContext.current.applicationContext
+    val container = (appContext as TtsBrowserApp).container
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val snackbar = remember { SnackbarHostState() }
+    val fallbackMessage = stringResource(R.string.playback_edge_fallback)
+    LaunchedEffect(container, lifecycle, fallbackMessage) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            container.speechFallbackNotices.collect { snackbar.showSnackbar(fallbackMessage) }
+        }
+    }
     // Activity-scoped (outside NavHost): the page survives switching tabs, and the reader talks to
     // the browser page through the extraction view model.
     val browserViewModel: BrowserViewModel = viewModel(factory = BrowserViewModel.Factory)
@@ -113,6 +130,7 @@ fun AppNavHost() {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (currentDestination?.route != READER_ROUTE) {
                 Column {

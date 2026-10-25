@@ -27,6 +27,7 @@ class SleepTimer(
     private val scope: CoroutineScope,
     private val now: () -> Long,
     private val checkIntervalMs: Long = CHECK_INTERVAL_MS,
+    private val onVolume: (Float) -> Unit = {},
     private val onExpire: () -> Unit,
 ) {
     private val _state = MutableStateFlow<SleepTimerState>(SleepTimerState.Off)
@@ -41,7 +42,8 @@ class SleepTimer(
             while (true) {
                 val remaining = (_state.value as? SleepTimerState.Countdown)?.let { it.endsAt - now() } ?: return@launch
                 if (remaining <= 0) break
-                delay(minOf(remaining, checkIntervalMs))
+                onVolume((remaining.toFloat() / FADE_DURATION_MS).coerceIn(0f, 1f))
+                delay(minOf(remaining, checkIntervalMs, if (remaining <= FADE_DURATION_MS) 1_000L else remaining - FADE_DURATION_MS))
             }
             expire()
         }
@@ -56,6 +58,7 @@ class SleepTimer(
         job?.cancel()
         job = null
         _state.value = SleepTimerState.Off
+        onVolume(1f)
     }
 
     /**
@@ -70,10 +73,12 @@ class SleepTimer(
         job = null
         _state.value = SleepTimerState.Off
         onExpire()
+        onVolume(1f)
     }
 
     companion object {
         const val MS_PER_MINUTE = 60_000L
         const val CHECK_INTERVAL_MS = 15_000L
+        const val FADE_DURATION_MS = 15_000L
     }
 }

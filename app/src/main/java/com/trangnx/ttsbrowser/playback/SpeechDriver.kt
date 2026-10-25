@@ -35,6 +35,7 @@ class SpeechDriver(
     private var lastIndex = -1
     private var consecutiveErrors = 0
     private var watchdog: Job? = null
+    private var volume = 1f
 
     var isSpeaking = false
         private set
@@ -66,6 +67,7 @@ class SpeechDriver(
         val current = engine?.takeIf { ready } ?: return
         current.setRate(rate)
         current.setPitch(pitch)
+        current.setVolume(volume)
         lastIndex = sentences.lastIndex
         consecutiveErrors = 0
         current.speak(sentences, fromIndex)
@@ -78,6 +80,11 @@ class SpeechDriver(
         engine?.stop()
         isSpeaking = false
         watchdog?.cancel()
+    }
+
+    fun setVolume(volume: Float) {
+        this.volume = volume.coerceIn(0f, 1f)
+        engine?.setVolume(this.volume)
     }
 
     /** Frees the engine (e.g. the TTS service binding); the next [ensureEngine] creates a new one. */

@@ -4,8 +4,12 @@ package com.trangnx.ttsbrowser.di
 
 import android.content.Context
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
+import com.trangnx.ttsbrowser.data.settings.SpeechEngine
+import com.trangnx.ttsbrowser.data.settings.SpeechSettings
+import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.data.db.AppDatabase
 import com.trangnx.ttsbrowser.data.repo.BrowsingRepository
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
@@ -21,8 +25,13 @@ import com.trangnx.ttsbrowser.playback.ProgressTracker
 import com.trangnx.ttsbrowser.playback.SleepTimer
 import com.trangnx.ttsbrowser.playback.TtsPlayer
 import com.trangnx.ttsbrowser.tts.system.SystemTtsEngine
+import com.trangnx.ttsbrowser.tts.FallbackTtsEngine
+import com.trangnx.ttsbrowser.tts.edge.EdgeTtsClient
+import com.trangnx.ttsbrowser.tts.edge.EdgeTtsEngine
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -55,15 +64,37 @@ class AppContainer(context: Context) {
 
     /** Process-wide main-thread scope for app singletons. */
     private val appScope = MainScope()
+    private var speechSettings = SpeechSettings()
+    private val edgeClient by lazy { EdgeTtsClient() }
+    private val fallbackNotices = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val speechFallbackNotices = fallbackNotices.asSharedFlow()
+
+    private fun notifySpeechFallback() {
+        if (fallbackNotices.subscriptionCount.value > 0) fallbackNotices.tryEmit(Unit)
+        else Toast.makeText(appContext, R.string.playback_edge_fallback, Toast.LENGTH_LONG).show()
+    }
 
     /**
      * App-wide player; [com.trangnx.ttsbrowser.playback.PlaybackService] puts it in a MediaSession.
      * Follows the saved speech rate from creation, also when the service starts without the UI.
      */
     val ttsPlayer: TtsPlayer by lazy {
-        TtsPlayer(appContext) { SystemTtsEngine(appContext) }.also { player ->
+        TtsPlayer(appContext) {
+            when (speechSettings.engine) {
+                SpeechEngine.System -> SystemTtsEngine(appContext)
+                SpeechEngine.Edge -> FallbackTtsEngine(
+                    EdgeTtsEngine(appContext, edgeClient, speechSettings.edgeVoice),
+                    { SystemTtsEngine(appContext) },
+                    ::notifySpeechFallback,
+                )
+            }
+        }.also { player ->
             appScope.launch {
-                settingsRepository.readerSettings.map { it.rate }.distinctUntilChanged().collect(player::setPlaybackSpeed)
+                settingsRepository.speechSettings.collect { settings ->
+                    val replace = settings.engine != speechSettings.engine || settings.edgeVoice != speechSettings.edgeVoice
+                    speechSettings = settings
+                    player.configureSpeech(settings.rate, settings.pitch, replaceEngine = replace)
+                }
             }
         }
     }
@@ -76,7 +107,9 @@ class AppContainer(context: Context) {
 
     val progressTracker: ProgressTracker by lazy { ProgressTracker(appScope, libraryRepository, playbackConnection) }
 
-    val sleepTimer: SleepTimer by lazy { SleepTimer(appScope, SystemClock::elapsedRealtime) { ttsPlayer.pause() } }
+    val sleepTimer: SleepTimer by lazy {
+        SleepTimer(appScope, SystemClock::elapsedRealtime, onVolume = { ttsPlayer.setSpeechVolume(it) }) { ttsPlayer.pause() }
+    }
 
     init {
         // Running whenever the process is, with or without UI (the service can start alone).

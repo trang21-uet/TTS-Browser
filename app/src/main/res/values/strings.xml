@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="playback_edge_fallback">Edge TTS không khả dụng. Đang chuyển sang giọng hệ thống.</string>
     <string name="app_name">TTS Browser</string>
     <string name="nav_browser">Trình duyệt</string>
     <string name="nav_library">Thư viện</string>
     <string name="nav_settings">Cài đặt</string>
-    <string name="placeholder_settings">Cài đặt — sẽ làm ở Phase 8</string>
 
     <string name="action_delete">Xóa</string>
     <string name="action_clear_all">Xóa hết</string>
@@ -88,4 +88,19 @@
     <string name="library_reading">Đang ở: %1$s</string>
     <string name="library_delete_title">Xóa khỏi thư viện?</string>
     <string name="library_delete_message">Chỉ xóa truyện và vị trí đã lưu trong app, không ảnh hưởng trang web.</string>
+    <string name="settings_speech_engine">Nguồn giọng đọc</string>
+    <string name="settings_engine_system">TTS hệ thống</string>
+    <string name="settings_system_hint">Dùng giọng tiếng Việt đã cài trên thiết bị</string>
+    <string name="settings_engine_edge">Microsoft Edge TTS</string>
+    <string name="settings_edge_hint">Giọng tự nhiên · Cần kết nối mạng</string>
+    <string name="settings_edge_privacy">Khi dùng Edge, các câu đang đọc và được tải trước sẽ được gửi tới Microsoft để tạo giọng nói. Nếu kết nối lỗi, app chuyển sang TTS hệ thống.</string>
+    <string name="settings_edge_voice">Giọng tiếng Việt</string>
+    <string name="settings_voice_hoaimy">Hoài My</string>
+    <string name="settings_voice_namminh">Nam Minh</string>
+    <string name="settings_voice_female">Giọng nữ</string>
+    <string name="settings_voice_male">Giọng nam</string>
+    <string name="settings_speech_adjustments">Điều chỉnh giọng đọc</string>
+    <string name="settings_per_engine_hint">Tốc độ và cao độ được lưu riêng cho từng nguồn giọng đọc.</string>
+    <string name="settings_pitch">Cao độ: %1$.1fx</string>
+    <string name="settings_save_error">Không lưu được cài đặt. Hãy thử lại.</string>
 </resources>
