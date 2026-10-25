@@ -10,58 +10,68 @@ import com.trangnx.ttsbrowser.data.repo.SiteRuleRepository
 import com.trangnx.ttsbrowser.extraction.ElementPicker
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
 import com.trangnx.ttsbrowser.extraction.PageScriptRunner
-import com.trangnx.ttsbrowser.extraction.PickedElement
 import com.trangnx.ttsbrowser.extraction.PickerStatus
 import com.trangnx.ttsbrowser.extraction.ReadabilityExtractor
-import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-sealed interface ExtractionUiState {
-    data object Idle : ExtractionUiState
-    data object Extracting : ExtractionUiState
-    data class Ready(val result: ExtractionResult.Success) : ExtractionUiState
-    data class Failed(val reason: ExtractionResult.Reason) : ExtractionUiState
-
-    data class Picking(val picked: PickedElement? = null, val error: PickError? = null) : ExtractionUiState
-}
-
-enum class PickError {
-    /** No unique selector could be built for the picked element. */
-    NoSelector,
-
-    /** The page has no http(s) host to remember the selector for. */
-    CannotSave,
-}
-
 /**
  * "Đọc" flow on the browser page: extraction, manual region picking and per-site selectors.
+ * A successful extraction asks for the reader ([openReader]); it does not touch the player.
  * Calls take a [PageScriptRunner] bound to the WebView, which stays in the UI layer.
+ * Activity-scoped: the reader sends [PageRequest]s that run when the browser is shown again.
  */
 class ExtractionViewModel(
     private val extractor: ReadabilityExtractor,
     private val picker: ElementPicker,
     private val siteRules: SiteRuleRepository,
-    private val playback: PlaybackConnection,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ExtractionUiState>(ExtractionUiState.Idle)
     val state: StateFlow<ExtractionUiState> = _state.asStateFlow()
 
+    private val _pageResult = MutableStateFlow<ExtractionResult.Success?>(null)
+    /** Last successful extraction of the page the browser shows; cleared when the page changes. */
+    val pageResult: StateFlow<ExtractionResult.Success?> = _pageResult.asStateFlow()
+
+    private val pending = PendingPageRequest()
+    val request: StateFlow<PageRequest?> = pending.value
+
+    private val readerRequests = Channel<ReaderRequest>(Channel.CONFLATED)
+    /** Emits each successful extraction; collected for the whole Activity, so never stale. */
+    val openReader: Flow<ReaderRequest> = readerRequests.receiveAsFlow()
+
     private var job: Job? = null
     private var pageUrl: String? = null
 
-    fun extract(runner: PageScriptRunner, url: String) = launch { runExtraction(runner, url) }
+    fun extract(runner: PageScriptRunner, url: String) {
+        pending.set(null)
+        launch { runExtraction(runner, url) }
+    }
 
-    /** Reads the extracted chapter aloud from the first sentence. */
-    fun listen() {
-        val result = (_state.value as? ExtractionUiState.Ready)?.result ?: return
-        playback.play(result.chapter, result.sentences)
+    /** Sets (or with null, drops: the user navigates themselves) the reader's request for the page. */
+    fun request(request: PageRequest?) = pending.set(request)
+
+    /** Runs the pending [request] on the page at [url]; extraction waits until the page has loaded. */
+    fun handleRequest(runner: PageScriptRunner, url: String, isLoading: Boolean) {
+        when (val request = pending.value.value) {
+            null -> return
+            PageRequest.Pick -> startPicking(runner)
+            PageRequest.ClearRule -> clearSiteRule(runner, url)
+            is PageRequest.ExtractWhenLoaded -> {
+                if (isLoading || !request.isReachedBy(url)) return
+                launch { runExtraction(runner, url, continuing = true) }
+            }
+        }
+        pending.set(null)
     }
 
     fun dismiss() {
@@ -131,34 +141,31 @@ class ExtractionViewModel(
 
     /**
      * Navigating away drops whatever belongs to the old page: a running extraction, its result
-     * or error, and the picker (stopped too, in case the page changed URL without a new document).
+     * or error, requests for it, and the picker (stopped too, in case the page changed URL without
+     * a new document). A chapter extraction on its way is kept (see [PendingPageRequest]).
      */
     fun onPageUrlChanged(runner: PageScriptRunner, url: String) {
-        val page = url.substringBefore('#')
+        val page = pageOf(url)
         if (page == pageUrl) return
-        val first = pageUrl == null
+        val previous = pageUrl
         pageUrl = page
-        if (first || _state.value == ExtractionUiState.Idle) return
+        _pageResult.value = null
+        pending.onPageChanged(previous, page)
+        if (previous == null || _state.value == ExtractionUiState.Idle) return
         val wasPicking = _state.value is ExtractionUiState.Picking
         job?.cancel()
         _state.value = ExtractionUiState.Idle
-        if (wasPicking) {
-            viewModelScope.launch {
-                try {
-                    picker.stop(runner)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    // Best effort: the old document is usually gone already.
-                }
-            }
-        }
+        if (wasPicking) viewModelScope.launch { picker.stopQuietly(runner) }
     }
 
-    private suspend fun runExtraction(runner: PageScriptRunner, url: String) {
+    private suspend fun runExtraction(runner: PageScriptRunner, url: String, continuing: Boolean = false) {
         _state.value = ExtractionUiState.Extracting
         _state.value = when (val result = extractor.extract(runner, url)) {
-            is ExtractionResult.Success -> ExtractionUiState.Ready(result)
+            is ExtractionResult.Success -> {
+                _pageResult.value = result
+                readerRequests.trySend(ReaderRequest(result, continuing))
+                ExtractionUiState.Idle
+            }
             is ExtractionResult.Failure -> ExtractionUiState.Failed(result.reason)
         }
     }
@@ -183,12 +190,7 @@ class ExtractionViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as TtsBrowserApp).container
-                ExtractionViewModel(
-                    container.readabilityExtractor,
-                    container.elementPicker,
-                    container.siteRuleRepository,
-                    container.playbackConnection,
-                )
+                ExtractionViewModel(container.readabilityExtractor, container.elementPicker, container.siteRuleRepository)
             }
         }
     }

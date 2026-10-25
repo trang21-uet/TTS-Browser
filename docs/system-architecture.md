@@ -23,20 +23,20 @@
 app/src/main/java/com/trangnx/ttsbrowser/
 ├── ui/
 │   ├── browser/       BrowserScreen, BrowserViewModel, BrowserWebView (WebView giữ ở AppNavHost, sống qua đổi tab), BrowserAddressBar, PageLinkList, UrlInputResolver
-│   ├── reader/        ReaderScreen (highlight câu), ReaderViewModel
+│   ├── reader/        ReaderScreen, ReaderViewModel, ReaderText (highlight, chạm câu, tự cuộn), ReaderControls, ReaderDisplaySheet, ReaderColors, SentenceSpans
 │   ├── library/       LibraryScreen, LibraryViewModel
 │   ├── settings/      SettingsScreen (engine, giọng, tốc độ, giao diện)
-│   └── player/        MiniPlayerBar, SleepTimerSheet
+│   └── player/        MiniPlayerBar, PlayPauseButton, SleepTimerSheet (Phase 6)
 ├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, ElementPicker (chọn vùng thủ công), HeadlessPageLoader (Phase 6)
 ├── text/              SentenceSegmenter, Sentence
 ├── tts/
 │   ├── TtsEngine.kt          interface chung (+ TtsEvent, TtsInitException)
 │   ├── system/               SystemTtsEngine, UtteranceId
 │   └── edge/                 EdgeTtsEngine, EdgeTtsClient (WebSocket), EdgeTokenGenerator
-├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController), TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer (Phase 6)
+├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer (Phase 6)
 ├── data/
 │   ├── db/            AppDatabase, entities, DAOs
-│   ├── settings/      SettingsRepository (DataStore)
+│   ├── settings/      SettingsRepository (DataStore: cỡ chữ, nền reader, tốc độ)
 │   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository, ProgressRepository
 └── di/                AppContainer
 ```
@@ -54,7 +54,7 @@ flowchart LR
   TP --> ENG{TtsEngine}
   ENG --> SYS[SystemTtsEngine]
   ENG --> EDGE[EdgeTtsEngine -> ExoPlayer]
-  TP -- currentIndex Flow --> RUI[ReaderScreen highlight]
+  TP -- Player.Listener → PlaybackUiState --> RUI[ReaderScreen highlight / MiniPlayer]
   TP -- MediaSession --> NOTI[Thông báo / Lock screen / BT]
   TP -- debounce --> PR[ProgressRepository / Room]
 ```
@@ -84,6 +84,13 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 - `PlaybackConnection.release()` khi task bị gỡ (`onTaskRemoved`) để service dừng được.
 - Audio focus (`AudioFocusHandler`, pause khi bị duck), mất focus tạm → suppression `TRANSIENT_AUDIO_FOCUS_LOSS`; `BecomingNoisyReceiver` → pause.
 - Phase 6: custom command "Chương sau", "Hẹn giờ".
+
+### Reader UI — Phase 5
+- FAB "Đọc" → `ExtractionViewModel` trích → `openReader` (collect ở `AppNavHost`) → `ReaderViewModel.show()` → route `reader` (toàn màn hình, trên các tab). Chương chỉ vào player (`PlaybackConnection.load()`) khi bấm Play / chạm câu, hoặc khi chuyển chương từ reader lúc đang phát.
+- `PlaybackConnection.state` (`PlaybackUiState`) lấy từ `Player.Listener` của `TtsPlayer`; lệnh (play/pause, chạm câu = `seekTo(i)` + `play`, câu trước/sau) qua `MediaController`.
+- Mỗi đoạn 1 item `LazyColumn`, mỗi câu 1 `LinkAnnotation.Clickable`; câu hiện tại tô nền `primaryContainer`; tự cuộn theo `TextLayoutResult`, tắt khi người dùng kéo.
+- Reader gửi `PageRequest` (Pick / ClearRule / ExtractWhenLoaded) cho `ExtractionViewModel` (scope Activity), chạy khi tab trình duyệt hiện lại.
+- Cài đặt reader trong DataStore; `AppContainer` áp tốc độ đã lưu vào `TtsPlayer` từ lúc tạo. Controller ngoài (thông báo, Wear…) không được đổi tốc độ.
 
 ### Trích nội dung (Phase 3)
 - `assets/js/`: `Readability.js` (Mozilla 0.6.0, Apache-2.0), `extract-page.js`, `element-picker.js`.

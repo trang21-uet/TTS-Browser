@@ -2,6 +2,9 @@ package com.trangnx.ttsbrowser.playback
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.annotation.OptIn
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.trangnx.ttsbrowser.MainActivity
@@ -23,7 +26,21 @@ class PlaybackService : MediaSessionService() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaSession.Builder(this, player).setSessionActivity(openApp).build()
+        session = MediaSession.Builder(this, player)
+            .setSessionActivity(openApp)
+            .setCallback(SessionCallback)
+            .build()
+    }
+
+    /** The saved rate is the only source of speed (the app sets it on the player directly): controllers cannot change it. */
+    @OptIn(UnstableApi::class)
+    private object SessionCallback : MediaSession.Callback {
+        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
+            MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailablePlayerCommands(
+                    TTS_PLAYER_COMMANDS.buildUpon().remove(Player.COMMAND_SET_SPEED_AND_PITCH).build(),
+                )
+                .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session

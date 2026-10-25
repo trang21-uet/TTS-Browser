@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.extraction.asScriptRunner
 
@@ -32,29 +31,38 @@ private enum class BrowserSheet { None, History, Bookmarks }
  * and history/bookmark sheets.
  */
 @Composable
-fun BrowserScreen(viewModel: BrowserViewModel, webView: WebView) {
-    val extractionViewModel: ExtractionViewModel = viewModel(factory = ExtractionViewModel.Factory)
+fun BrowserScreen(
+    viewModel: BrowserViewModel,
+    extractionViewModel: ExtractionViewModel,
+    webView: WebView,
+    modifier: Modifier = Modifier,
+) {
     val runner = remember(webView) { webView.asScriptRunner() }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     var sheet by rememberSaveable { mutableStateOf(BrowserSheet.None) }
 
+    // The user navigating themselves drops what the reader asked of the page it was loading.
+    val navigate: (WebView.() -> Unit) -> Unit = { action ->
+        extractionViewModel.request(null)
+        webView.action()
+    }
     val open: (String) -> Unit = { url ->
         sheet = BrowserSheet.None
-        webView.loadUrl(url)
+        navigate { loadUrl(url) }
     }
     val bookmarkLinks = bookmarks.map { PageLink(it.id, it.url, it.title) }
 
-    BackHandler(enabled = state.canGoBack) { webView.goBack() }
+    BackHandler(enabled = state.canGoBack) { navigate { goBack() } }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         BrowserAddressBar(
             state = state,
             actions = BrowserBarActions(
                 onSubmit = { input -> UrlInputResolver.resolve(input)?.let(open) },
-                onReloadOrStop = { if (state.isLoading) webView.stopLoading() else webView.reload() },
-                onBack = webView::goBack,
-                onForward = webView::goForward,
+                onReloadOrStop = { navigate { if (state.isLoading) stopLoading() else reload() } },
+                onBack = { navigate { goBack() } },
+                onForward = { navigate { goForward() } },
                 onToggleBookmark = viewModel::toggleBookmark,
                 onShowHistory = { sheet = BrowserSheet.History },
                 onShowBookmarks = { sheet = BrowserSheet.Bookmarks },
@@ -87,7 +95,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, webView: WebView) {
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                ExtractionOverlay(extractionViewModel, runner, state.url, onOpenUrl = open)
+                ExtractionOverlay(extractionViewModel, runner, state.url, state.isLoading)
             }
         }
     }

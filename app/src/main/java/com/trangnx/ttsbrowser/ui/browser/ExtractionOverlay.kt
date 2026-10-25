@@ -26,17 +26,29 @@ import kotlinx.coroutines.delay
 
 private const val PICK_POLL_MS = 500L
 
-/** "Đọc" FAB over the page plus everything it opens: picker bar, failure dialog, result sheet. */
+/** Progress can read 100 before the page is done, or a redirect can follow: wait for loading to stay finished. */
+private const val LOAD_SETTLE_MS = 700L
+
+/**
+ * "Đọc" FAB over the page plus what it opens: picker bar, failure dialog (a successful extraction
+ * opens the reader, see [ExtractionViewModel.openReader]). Also runs requests the reader left for this page.
+ */
 @Composable
 fun BoxScope.ExtractionOverlay(
     viewModel: ExtractionViewModel,
     runner: PageScriptRunner,
     pageUrl: String,
-    onOpenUrl: (String) -> Unit,
+    isLoading: Boolean,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val request by viewModel.request.collectAsStateWithLifecycle()
 
     LaunchedEffect(pageUrl) { viewModel.onPageUrlChanged(runner, pageUrl) }
+    LaunchedEffect(request, pageUrl, isLoading) {
+        // Restarted (so cancelled) whenever loading resumes or the URL changes during the wait.
+        if (request is PageRequest.ExtractWhenLoaded && !isLoading) delay(LOAD_SETTLE_MS)
+        viewModel.handleRequest(runner, pageUrl, isLoading)
+    }
 
     when (val current = state) {
         is ExtractionUiState.Picking -> {
@@ -64,24 +76,12 @@ fun BoxScope.ExtractionOverlay(
         )
     }
 
-    when (val current = state) {
-        is ExtractionUiState.Ready -> ExtractionResultSheet(
-            result = current.result,
-            onDismiss = viewModel::dismiss,
-            onListen = viewModel::listen,
-            onOpenUrl = { url ->
-                viewModel.dismiss()
-                onOpenUrl(url)
-            },
-            onPickOther = { viewModel.startPicking(runner) },
-            onClearRule = { viewModel.clearSiteRule(runner, pageUrl) },
-        )
-        is ExtractionUiState.Failed -> ExtractionFailedDialog(
-            reason = current.reason,
+    (state as? ExtractionUiState.Failed)?.let { failed ->
+        ExtractionFailedDialog(
+            reason = failed.reason,
             onPick = { viewModel.startPicking(runner) },
             onDismiss = viewModel::dismiss,
         )
-        else -> Unit
     }
 }
 

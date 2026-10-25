@@ -1,8 +1,12 @@
+@file:OptIn(UnstableApi::class)
+
 package com.trangnx.ttsbrowser.playback
 
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 
 /** What [TtsPlayer] supports: play/pause/stop, seeking by sentence, speed and pitch. */
 internal val TTS_PLAYER_COMMANDS: Player.Commands = Player.Commands.Builder().addAll(

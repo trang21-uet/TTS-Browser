@@ -3,31 +3,73 @@ package com.trangnx.ttsbrowser.playback
 import android.content.ComponentName
 import android.content.Context
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.trangnx.ttsbrowser.R
-import com.trangnx.ttsbrowser.extraction.Chapter
-import com.trangnx.ttsbrowser.text.Sentence
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * App-side entry to playback: loads a chapter into [TtsPlayer] and plays it through a
- * [MediaController], which binds [PlaybackService] so the session and notification exist.
- * [release] unbinds (task removed), so the service can stop once playback is not ongoing.
- * Main thread only.
+ * App-side entry to playback: loads chapters into [TtsPlayer], publishes its state for the UI and
+ * sends commands through a [MediaController], which binds [PlaybackService] so the session and
+ * notification exist. [release] unbinds (task removed), so the service can stop once playback is
+ * not ongoing. Main thread only.
  */
+@OptIn(UnstableApi::class)
 class PlaybackConnection(context: Context, private val player: TtsPlayer) {
     private val appContext = context.applicationContext
     private val mainExecutor = ContextCompat.getMainExecutor(appContext)
     private var controllerFuture: ListenableFuture<MediaController>? = null
 
-    fun play(chapter: Chapter, sentences: List<Sentence>, startIndex: Int = 0) {
-        player.setChapter(chapter, sentences, startIndex)
-        withController(retry = true) { it.play() }
+    private val _loaded = MutableStateFlow<LoadedChapter?>(null)
+    val loaded: StateFlow<LoadedChapter?> = _loaded.asStateFlow()
+
+    // Read from the player itself (same process): accurate even while no controller is connected.
+    private val _state = MutableStateFlow(player.toUiState())
+    val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
+
+    init {
+        player.addListener(object : Player.Listener {
+            override fun onEvents(player: Player, events: Player.Events) {
+                _state.value = player.toUiState()
+            }
+        })
     }
+
+    /** Whether [chapter] is the loaded chapter (same page, same sentences). */
+    fun isLoaded(chapter: LoadedChapter): Boolean {
+        val current = _loaded.value ?: return false
+        return current.chapter.url == chapter.chapter.url && current.sentences == chapter.sentences
+    }
+
+    /**
+     * Makes [chapter] the player's queue, keeping the play/pause state. Already loaded: only its
+     * metadata (title, links, source) is refreshed and the position is kept.
+     */
+    fun load(chapter: LoadedChapter) {
+        if (!isLoaded(chapter)) player.setChapter(chapter.chapter, chapter.sentences)
+        _loaded.value = chapter
+    }
+
+    fun togglePlayPause() = withController(retry = true) { Util.handlePlayPauseButtonAction(it) }
+
+    /** Reads from sentence [index]. */
+    fun playFrom(index: Int) = withController(retry = true) {
+        if (it.playbackState == Player.STATE_IDLE) it.prepare()
+        it.seekTo(index, 0L)
+        it.play()
+    }
+
+    fun previousSentence() = withController(retry = true) { it.seekToPreviousMediaItem() }
+
+    fun nextSentence() = withController(retry = true) { it.seekToNextMediaItem() }
 
     fun release() {
         controllerFuture?.let(MediaController::releaseFuture)
@@ -39,17 +81,16 @@ class PlaybackConnection(context: Context, private val player: TtsPlayer) {
         future.addListener(
             {
                 val controller = runCatching { future.get() }.getOrNull()
-                when {
-                    controller?.isConnected == true -> action(controller)
-                    controllerFuture !== future -> Unit // released meanwhile
-                    else -> {
-                        drop(future)
-                        if (retry) {
-                            withController(retry = false, action)
-                        } else {
-                            Toast.makeText(appContext, R.string.playback_error_connect, Toast.LENGTH_LONG).show()
-                        }
-                    }
+                if (controller?.isConnected == true) {
+                    action(controller)
+                    return@addListener
+                }
+                // Failed, rejected or disconnected (onDisconnected may have dropped it already).
+                drop(future)
+                if (retry) {
+                    withController(retry = false, action)
+                } else {
+                    Toast.makeText(appContext, R.string.playback_error_connect, Toast.LENGTH_LONG).show()
                 }
             },
             mainExecutor,
@@ -64,7 +105,6 @@ class PlaybackConnection(context: Context, private val player: TtsPlayer) {
                 override fun onDisconnected(controller: MediaController) = drop(future)
             })
             .buildAsync()
-        future.addListener({ runCatching { future.get() }.getOrNull()?.addListener(errorToast) }, mainExecutor)
         controllerFuture = future
         return future
     }
@@ -74,12 +114,5 @@ class PlaybackConnection(context: Context, private val player: TtsPlayer) {
         if (controllerFuture !== future) return
         controllerFuture = null
         MediaController.releaseFuture(future)
-    }
-
-    // Until the reader screen (Phase 5) shows player errors.
-    private val errorToast = object : Player.Listener {
-        override fun onPlayerError(error: PlaybackException) {
-            Toast.makeText(appContext, error.message, Toast.LENGTH_LONG).show()
-        }
     }
 }

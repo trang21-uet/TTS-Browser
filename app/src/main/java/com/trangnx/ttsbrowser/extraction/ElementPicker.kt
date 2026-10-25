@@ -1,5 +1,6 @@
 package com.trangnx.ttsbrowser.extraction
 
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 
 /** The element currently outlined by the picker, e.g. `div.chapter-c` with 3 200 chars of text. */
@@ -29,6 +30,16 @@ class ElementPicker(private val scripts: ExtractionScripts) {
 
     suspend fun stop(runner: PageScriptRunner) {
         runner.evaluate(call("stop"))
+    }
+
+    /** [stop], ignoring failures: best effort when the old document is usually gone already. */
+    suspend fun stopQuietly(runner: PageScriptRunner) {
+        try {
+            stop(runner)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+        }
     }
 
     private fun call(method: String) = "window.__ttsPicker ? window.__ttsPicker.$method() : null"
