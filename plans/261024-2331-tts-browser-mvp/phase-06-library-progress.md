@@ -14,7 +14,7 @@ Reader có "Lưu truyện" → truyện vào Thư viện. Vị trí đọc (chư
 - Khôi phục theo `charOffset` (`Sentence.start`) nếu cách tách câu đổi; khớp `sentenceIndex` + `start` thì dùng luôn.
 - Mở lại từ Thư viện: chương đang nằm trong player → giữ nguyên vị trí sống (không pause); ngược lại nạp ở câu đã lưu rồi pause.
 - Tên truyện gợi ý từ `document.title`/`og:title` (`BookTitleSuggester`: bỏ đoạn "Chương …", bỏ tên site ở cuối); người dùng sửa được trước khi lưu.
-- Hẹn giờ: mốc theo `elapsedRealtime` (ngủ sâu không làm trễ), vòng kiểm tra 15s. **Không giảm dần âm lượng**: TTS hệ thống xếp hàng 5 câu và âm lượng đặt theo utterance → không đổi được câu đã xếp (PDR: "nếu engine hỗ trợ"); làm cùng Edge TTS (Phase 7). "Hết chương": player hiện đã tự dừng ở cuối chương (chưa có tự sang chương) nên chỉ gỡ hẹn giờ khi chương hết; lúc có tự sang chương thì chặn nó.
+- Hẹn giờ: mốc theo `elapsedRealtime` (ngủ sâu không làm trễ), vòng kiểm tra 15s. Trong Phase 6 chưa giảm dần âm lượng: TTS hệ thống xếp hàng 5 câu và âm lượng đặt theo utterance → không đổi được câu đã xếp (PDR: "nếu engine hỗ trợ"). Phase 7 đã thêm fade Edge trong 15 giây cuối, kiểm tra mỗi giây; system giữ nguyên. "Hết chương": player hiện đã tự dừng ở cuối chương (chưa có tự sang chương) nên chỉ gỡ hẹn giờ khi chương hết; lúc có tự sang chương thì chặn nó.
 - `defaultSleepMinutes` (DataStore) bỏ: chưa có chỗ đặt.
 
 ## Requirements
@@ -57,4 +57,4 @@ Lưu truyện → đọc vài câu → đóng hẳn app → mở Thư viện →
 Không thêm quyền. WebView ẩn dùng cùng cấu hình bảo mật (tắt file/content access, chặn scheme ngoài http/https, không JS bridge). Chỉ tải URL do trang đã trích (`nextUrl`) hoặc URL người dùng đã lưu.
 
 ## Next
-Phase 7: Edge TTS (có thể thêm giảm âm lượng cho hẹn giờ).
+Phase 7: [Edge TTS](phase-07-edge-tts.md) đã triển khai giảm âm lượng trong 15 giây cuối hẹn giờ cho Edge; system giữ nguyên. Checklist thiết bị Phase 6 vẫn chờ kiểm tra riêng.

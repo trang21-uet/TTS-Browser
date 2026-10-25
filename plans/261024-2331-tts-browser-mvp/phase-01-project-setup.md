@@ -1,11 +1,11 @@
 # Phase 01 — Project setup
 
 ## Overview
-Priority: P0 · Status: Done (assembleDebug pass 2026-10-24)
+Priority: P0 · Status: Done (assembleDebug pass 2026-10-24), chờ thử trên máy
 Dựng project Android build được, có khung điều hướng 3 màn (Browser / Library / Settings) và AppContainer.
 
 ## Requirements
-- Gradle Kotlin DSL + `gradle/libs.versions.toml`, Gradle wrapper 9.5.1
+- Gradle Kotlin DSL + `gradle/libs.versions.toml`, Gradle wrapper 9.8.2 (đã nâng theo AGP 9.4.1)
 - Single module `app`, package `com.trangnx.ttsbrowser`
 - Compose Material 3, dynamic color (Android 12+), dark mode
 - Navigation Compose với bottom bar: Browser, Thư viện, Cài đặt (màn placeholder)
