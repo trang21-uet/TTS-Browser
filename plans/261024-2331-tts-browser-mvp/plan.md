@@ -9,7 +9,7 @@ Spec: [PDR](../../docs/project-overview-pdr.md) · [Architecture](../../docs/sys
 | 3. Extraction (Readability, cleaner, link finder, segmenter, element picker) | [phase-03-extraction.md](phase-03-extraction.md) | Done (chờ thử trên máy) |
 | 4. TTS core (engine, TtsPlayer, PlaybackService) | [phase-04-tts-core.md](phase-04-tts-core.md) | Done (chờ thử trên máy) |
 | 5. Reader UI (highlight, seek, theme, mini player) | [phase-05-reader-ui.md](phase-05-reader-ui.md) | Done (chờ thử trên máy) |
-| 6. Library, progress, sleep timer, headless loader | phase-06 | Pending |
+| 6. Library, progress, sleep timer, headless loader | [phase-06-library-progress.md](phase-06-library-progress.md) | Done (chờ thử trên máy) |
 | 7. Edge TTS | phase-07 | Pending |
 | 8. Polish, battery guide (HyperOS), release APK | phase-08 | Pending |
 

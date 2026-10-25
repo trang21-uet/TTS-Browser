@@ -24,20 +24,20 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── ui/
 │   ├── browser/       BrowserScreen, BrowserViewModel, BrowserWebView (WebView giữ ở AppNavHost, sống qua đổi tab), BrowserAddressBar, PageLinkList, UrlInputResolver
 │   ├── reader/        ReaderScreen, ReaderViewModel, ReaderText (highlight, chạm câu, tự cuộn), ReaderControls, ReaderDisplaySheet, ReaderColors, SentenceSpans
-│   ├── library/       LibraryScreen, LibraryViewModel
+│   ├── library/       LibraryScreen, LibraryViewModel (mở truyện đã lưu bằng HeadlessPageLoader)
 │   ├── settings/      SettingsScreen (engine, giọng, tốc độ, giao diện)
-│   └── player/        MiniPlayerBar, PlayPauseButton, SleepTimerSheet (Phase 6)
-├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, ElementPicker (chọn vùng thủ công), HeadlessPageLoader (Phase 6)
-├── text/              SentenceSegmenter, Sentence
+│   └── player/        MiniPlayerBar, PlayPauseButton, SleepTimerSheet
+├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, PageWebViewSettings, ElementPicker (chọn vùng thủ công), HeadlessPageLoader
+├── text/              SentenceSegmenter, Sentence, ResumePosition (khôi phục câu theo charOffset), BookTitleSuggester
 ├── tts/
 │   ├── TtsEngine.kt          interface chung (+ TtsEvent, TtsInitException)
 │   ├── system/               SystemTtsEngine, UtteranceId
 │   └── edge/                 EdgeTtsEngine, EdgeTtsClient (WebSocket), EdgeTokenGenerator
-├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer (Phase 6)
+├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer, ProgressTracker, NextChapterLoader
 ├── data/
-│   ├── db/            AppDatabase, entities, DAOs
+│   ├── db/            AppDatabase, entities (Book, Progress, History, Bookmark, SiteRule), DAOs
 │   ├── settings/      SettingsRepository (DataStore: cỡ chữ, nền reader, tốc độ)
-│   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository, ProgressRepository
+│   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository (truyện + tiến độ)
 └── di/                AppContainer
 ```
 
@@ -83,7 +83,7 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 - `SpeechDriver`: tạo engine khi phát lần đầu (state BUFFERING, init timeout 15s), giải phóng khi stop/lỗi/hết chương; lỗi 1 câu bỏ qua, 3 lỗi liên tiếp hoặc 90s không callback → `playerError`.
 - `PlaybackConnection.release()` khi task bị gỡ (`onTaskRemoved`) để service dừng được.
 - Audio focus (`AudioFocusHandler`, pause khi bị duck), mất focus tạm → suppression `TRANSIENT_AUDIO_FOCUS_LOSS`; `BecomingNoisyReceiver` → pause.
-- Phase 6: custom command "Chương sau", "Hẹn giờ".
+- Phase 6: nút "Chương sau" trên thông báo (custom session command, `setMediaButtonPreferences`, chỉ khi chương có `nextUrl`) → `NextChapterLoader`.
 
 ### Reader UI — Phase 5
 - FAB "Đọc" → `ExtractionViewModel` trích → `openReader` (collect ở `AppNavHost`) → `ReaderViewModel.show()` → route `reader` (toàn màn hình, trên các tab). Chương chỉ vào player (`PlaybackConnection.load()`) khi bấm Play / chạm câu, hoặc khi chuyển chương từ reader lúc đang phát.
@@ -98,23 +98,30 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 - Thứ tự: selector trong `site_rule` theo host → Readability. Nội dung < 200 ký tự → lỗi, mời chọn vùng thủ công.
 - `element-picker.js` cài `window.__ttsPicker`; Kotlin gọi `status/parent/selector/stop` qua `evaluateJavascript` (poll 500ms), không dùng JS bridge.
 
-### HeadlessPageLoader
-- WebView không gắn vào UI để tải `nextUrl` khi bấm "Chương sau" từ thông báo (app ở nền). Cùng script Readability. Timeout 15s.
+### HeadlessPageLoader — Phase 6
+- WebView không gắn vào UI (tạo bằng application context, hủy sau khi xong): tải URL, chờ `onPageFinished` rồi 500ms không có lần tải nào nữa (redirect, trang chờ Cloudflare), rồi chạy `ReadabilityExtractor` như tab trình duyệt (cùng site_rule, cùng cookie). Timeout tải 15s; lỗi tải / timeout → `Reason.LoadFailed`.
+- Dùng bởi `NextChapterLoader` (nút "Chương sau" trên thông báo → `load` + `playFrom(0)`, một lần một lúc) và `LibraryViewModel` (mở truyện đã lưu).
+- Cấu hình WebView chung (`PageWebViewSettings`): JS + DOM storage bật, tắt truy cập file/content; chặn scheme khác http/https.
+
+### Thư viện & tiến độ — Phase 6
+- Không lưu nội dung chương: mở lại truyện = tải lại `progress.chapterUrl`, đặt câu theo `resumeIndex(sentenceIndex, charOffset)` (khớp `start` thì giữ chỉ số, không thì câu chứa `charOffset`), nạp vào player và pause. Chương đang nằm trong player thì giữ vị trí sống.
+- Chương thuộc truyện nào = truyện có `progress.chapterUrl` ∈ {url, prevUrl, nextUrl} của chương (`LibraryRepository.bookOf`, Flow Room) → đọc tiếp chương liền kề vẫn thuộc cùng truyện, không cần trạng thái "truyện đang đọc". "Lưu truyện" trùng (host, tên) thì cập nhật truyện cũ.
+- `ProgressTracker` (app scope, khởi động cùng `AppContainer`): ghi khi truyện, chương đang nạp và chỉ số câu cùng một chương; tối đa 1 lần/2s, ngay khi pause/hết chương, và khi `PlaybackService` bị gỡ/hủy. `PlaybackConnection.load` đặt `loaded` trước khi đổi hàng đợi để chỉ số câu của chương mới không bị gán cho truyện của chương cũ.
+- `SleepTimer` (app scope, `elapsedRealtime`, kiểm tra mỗi 15s): 15/30/45/60 phút → pause player; "hết chương" → gỡ khi chương đọc xong (player đã tự dừng ở cuối chương). Chưa giảm dần âm lượng: TTS hệ thống xếp hàng 5 câu, âm lượng đặt theo utterance (làm cùng Edge TTS, Phase 7).
 
 ## 5. Dữ liệu (Room)
 
 | Bảng | Cột chính |
 |------|-----------|
-| `book` | id, title, host, coverUrl?, currentChapterUrl, createdAt, updatedAt |
-| `chapter` | id, bookId, url (unique), title, prevUrl?, nextUrl?, contentText?, fetchedAt |
-| `progress` | bookId (PK), chapterUrl, sentenceIndex, charOffset, updatedAt |
+| `book` | id, title, host, createdAt, updatedAt — unique (host, title); `updatedAt` = lần đọc gần nhất (sắp xếp thư viện) |
+| `progress` | bookId (PK, FK → book, xóa theo), chapterUrl (index), chapterTitle, sentenceIndex, charOffset, updatedAt |
 | `history` | id, url, title, visitedAt |
 | `bookmark` | id, url, title, createdAt |
 | `site_rule` | host (PK), contentSelector, updatedAt — selector từ chọn vùng thủ công |
 
-Schema Room export ra `app/schemas/` (Room Gradle plugin); thêm bảng ở phase sau bằng AutoMigration. Phase 2 có `history`, `bookmark` (v1); Phase 3 thêm `site_rule` (v2).
+Schema Room export ra `app/schemas/` (Room Gradle plugin); thêm bảng ở phase sau bằng AutoMigration. Phase 2 có `history`, `bookmark` (v1); Phase 3 thêm `site_rule` (v2); Phase 6 thêm `book`, `progress` (v3). Bảng `chapter` (cache nội dung) và `book.coverUrl`/`currentChapterUrl` chưa làm: chưa có đọc offline, vị trí nằm ở `progress`.
 
-DataStore: `engine`, `systemVoice`, `edgeVoice`, `rate`, `pitch`, `fontSize`, `readerTheme`, `defaultSleepMinutes`.
+DataStore: `engine`, `systemVoice`, `edgeVoice`, `rate`, `pitch`, `fontSize`, `readerTheme` (hẹn giờ không có mặc định lưu).
 
 ## 6. Quyền & Manifest
 
