@@ -11,7 +11,7 @@ Spec: [PDR](../../docs/project-overview-pdr.md) · [Architecture](../../docs/sys
 | 5. Reader UI (highlight, seek, theme, mini player) | [phase-05-reader-ui.md](phase-05-reader-ui.md) | Done (chờ thử trên máy) |
 | 6. Library, progress, sleep timer, headless loader | [phase-06-library-progress.md](phase-06-library-progress.md) | Done (chờ thử trên máy) |
 | 7. Edge TTS | [phase-07-edge-tts.md](phase-07-edge-tts.md) | Done (build + 78 test + lint pass; smoke test Xiaomi 13, còn thử âm thanh/nền) |
-| 8. Polish, battery guide (HyperOS), release APK | phase-08 | Pending |
+| 8. Polish, battery guide (HyperOS), release APK | [phase-08-polish-release.md](phase-08-polish-release.md) | Đã triển khai; 83 test + debug/release build/lint pass; APK unsigned 2,91 MiB; còn QA đầy đủ |
 
 ## Key dependencies
 - AGP 9.4.1 (built-in Kotlin, cần Gradle ≥ 9.6) → Gradle 9.8.2, JDK 21
@@ -22,7 +22,7 @@ Spec: [PDR](../../docs/project-overview-pdr.md) · [Architecture](../../docs/sys
 
 - Phase 1–6: các bước triển khai đã hoàn tất; mọi checklist thiết bị vẫn giữ pending theo từng phase.
 - Phase 7: triển khai xong, review 9.5/10 không còn Critical/High; kiểm tra cuối build + 78 unit test + lint pass. Xiaomi 13 cài/mở app, cài đặt Edge Nam Minh tồn tại qua force-stop/relaunch; kiểm thử phát âm thanh/nền còn pending.
-- Phase 8 chưa bắt đầu. Gồm hướng dẫn pin HyperOS, polish/release và lỗi baseline `SystemTtsEngine.queueMore` làm `Failed` bị lọc khi tăng generation ngay sau emit.
+- Phase 8 đã triển khai hướng dẫn pin lần đầu/Cài đặt, nút chọn giọng hệ thống, sửa queue lỗi đồng bộ và 5 regression test, cấu hình signing tùy chọn. Build debug/release + 83 test + lint pass (4 warning). APK unsigned 3.049.157 byte; người dùng chọn giữ chưa ký. Xiaomi 13 smoke test hướng dẫn/settings đạt; 2/5 domain trích được chương, 3 domain lỗi mạng/máy chủ. Còn QA toàn chương/link, nghe nền dài hạn và thử release đã ký. Xem [hướng dẫn release](../../docs/release-guide.md).
 
 ## Findings: akaytruyen.com (trang thử nghiệm chính)
 - Laravel + Cloudflare; HTML render phía server → WebView/Readability đọc được, không cần JS đặc biệt

@@ -30,6 +30,8 @@ Yêu cầu: JDK 21, Android SDK 37 (compileSdk 37, targetSdk 36), Gradle wrapper
 ./gradlew assembleDebug
 ```
 
+Build APK release tối ưu, ký cá nhân và checklist HyperOS: [Hướng dẫn release](docs/release-guide.md). Phase 8 có hướng dẫn nghe nền ở lần mở đầu và trong Cài đặt; có thể mở phần chọn giọng hệ thống của Android ngay trong app.
+
 Trong tab **Cài đặt**, chọn TTS hệ thống hoặc Microsoft Edge TTS (Hoài My/Nam Minh), chỉnh tốc độ/cao độ riêng cho từng nguồn giọng. Edge cần mạng và gửi các câu đang đọc/tiền tải tới Microsoft; khi lỗi sẽ tự chuyển sang giọng hệ thống từ câu hiện tại.
 
 Mã token Edge v2 được port từ `rany2/edge-tts` (LGPL-3.0-only), có attribution trong mã và license tại `app/src/main/assets/licenses/`. Tiến độ và các kiểm tra thiết bị còn lại nằm trong [kế hoạch MVP](plans/261024-2331-tts-browser-mvp/plan.md).

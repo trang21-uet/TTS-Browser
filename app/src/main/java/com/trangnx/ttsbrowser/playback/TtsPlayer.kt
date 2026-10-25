@@ -60,6 +60,12 @@ class TtsPlayer(
 
     fun setSpeechVolume(volume: Float) = speech.setVolume(volume)
 
+    /** Rebinds Android TTS after system settings change, keeping position and play/pause intent. */
+    fun refreshSpeechEngine() {
+        speech.release()
+        sync(restartSpeech = true)
+    }
+
     /** Replaces the queue with [chapter]; keeps the play/pause state. */
     fun setChapter(chapter: Chapter, sentences: List<Sentence>, startIndex: Int = 0) {
         speech.stopSpeaking()

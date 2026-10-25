@@ -22,6 +22,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,7 +46,11 @@ import com.trangnx.ttsbrowser.tts.TtsEngine
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)) {
+fun SettingsScreen(
+    onBackgroundGuide: () -> Unit,
+    onSystemVoiceSettingsClosed: () -> Unit,
+    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val saving by viewModel.saving.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -63,6 +68,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel(factory = SettingsVi
             SpeechSettingsContent(
                 current, enabled = !saving, onEngine = viewModel::setEngine, onVoice = viewModel::setVoice,
                 onRate = viewModel::setRate, onPitch = viewModel::setPitch,
+                onBackgroundGuide = onBackgroundGuide,
+                onSystemVoiceSettingsClosed = onSystemVoiceSettingsClosed,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -77,6 +84,8 @@ private fun SpeechSettingsContent(
     onVoice: (String) -> Unit,
     onRate: (Float) -> Unit,
     onPitch: (Float) -> Unit,
+    onBackgroundGuide: () -> Unit,
+    onSystemVoiceSettingsClosed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -115,6 +124,7 @@ private fun SpeechSettingsContent(
                 ) { onVoice(SpeechSettings.EDGE_VOICES[1]) }
             }
         }
+        if (settings.engine == SpeechEngine.System) SystemVoiceSettingsButton(onSystemVoiceSettingsClosed)
         HorizontalDivider()
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SectionTitle(stringResource(R.string.settings_speech_adjustments))
@@ -122,6 +132,8 @@ private fun SpeechSettingsContent(
             SpeechSlider(settings.rate, settings.engine, enabled, TtsEngine.MIN_RATE..TtsEngine.MAX_RATE, R.string.reader_rate, onRate)
             SpeechSlider(settings.pitch, settings.engine, enabled, TtsEngine.MIN_PITCH..TtsEngine.MAX_PITCH, R.string.settings_pitch, onPitch)
         }
+        HorizontalDivider()
+        TextButton(onClick = onBackgroundGuide) { Text(stringResource(R.string.background_guide_title)) }
     }
 }
 

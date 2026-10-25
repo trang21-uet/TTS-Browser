@@ -5,6 +5,7 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -96,6 +97,9 @@ class SettingsRepository(context: Context) {
         .catch { emit(emptyPreferences()) }
 
     val speechSettings: Flow<SpeechSettings> = preferences.map(SpeechPreferences::read).distinctUntilChanged()
+    val backgroundGuideSeen: Flow<Boolean> = preferences.map { it[BACKGROUND_GUIDE_SEEN] ?: false }.distinctUntilChanged()
+
+    suspend fun markBackgroundGuideSeen() = edit { it[BACKGROUND_GUIDE_SEEN] = true }
 
     val readerSettings: Flow<ReaderSettings> = preferences
         .map { prefs ->
@@ -134,6 +138,7 @@ class SettingsRepository(context: Context) {
         const val MAX_RETRY_STEPS = 30L
 
         val FONT_SIZE = intPreferencesKey("fontSize")
+        val BACKGROUND_GUIDE_SEEN = booleanPreferencesKey("backgroundGuideSeen")
         val READER_THEME = stringPreferencesKey("readerTheme")
     }
 }

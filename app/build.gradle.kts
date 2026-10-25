@@ -5,6 +5,14 @@ plugins {
     alias(libs.plugins.room)
 }
 
+// Optional personal signing. Keep passwords outside the repository and Gradle command line.
+val releaseSigning = listOf("TTS_KEYSTORE_PATH", "TTS_KEYSTORE_PASSWORD", "TTS_KEY_ALIAS", "TTS_KEY_PASSWORD")
+    .associateWith { providers.environmentVariable(it).orNull }
+val hasReleaseSigning = releaseSigning.values.all { !it.isNullOrBlank() }
+require(hasReleaseSigning || releaseSigning.values.all { it.isNullOrBlank() }) {
+    "Release signing requires all four TTS_KEYSTORE_PATH, TTS_KEYSTORE_PASSWORD, TTS_KEY_ALIAS, TTS_KEY_PASSWORD variables."
+}
+
 android {
     namespace = "com.trangnx.ttsbrowser"
     compileSdk = 37
@@ -17,8 +25,20 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("personalRelease") {
+                storeFile = rootProject.file(releaseSigning.getValue("TTS_KEYSTORE_PATH")!!)
+                storePassword = releaseSigning.getValue("TTS_KEYSTORE_PASSWORD")
+                keyAlias = releaseSigning.getValue("TTS_KEY_ALIAS")
+                keyPassword = releaseSigning.getValue("TTS_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("personalRelease")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

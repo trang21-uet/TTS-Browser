@@ -103,4 +103,15 @@
     <string name="settings_per_engine_hint">Tốc độ và cao độ được lưu riêng cho từng nguồn giọng đọc.</string>
     <string name="settings_pitch">Cao độ: %1$.1fx</string>
     <string name="settings_save_error">Không lưu được cài đặt. Hãy thử lại.</string>
+    <string name="settings_system_voice_action">Chọn engine và giọng hệ thống</string>
+    <string name="settings_open_failed">Không mở được cài đặt. Hãy mở Cài đặt của điện thoại thủ công.</string>
+    <string name="background_guide_title">Nghe khi tắt màn hình</string>
+    <string name="background_guide_intro">Nếu truyện bị ngắt khi tắt màn hình, hãy kiểm tra các mục dưới đây. Bạn có thể xem lại hướng dẫn trong Cài đặt.</string>
+    <string name="background_battery_exempt">Android: đã cho phép bỏ qua tối ưu pin. Hãy kiểm tra thêm các mục HyperOS nếu dùng Xiaomi.</string>
+    <string name="background_battery_restricted">Android: chưa cho phép bỏ qua tối ưu pin.</string>
+    <string name="background_battery_action">Cho phép bỏ qua tối ưu pin</string>
+    <string name="background_hyperos_steps">Trên Xiaomi / HyperOS:\n1. Thông tin ứng dụng → Tiết kiệm pin → Không hạn chế.\n2. Cài đặt → Ứng dụng → Quyền → Tự khởi chạy trong nền: bật TTS Browser.\n3. Mở đa nhiệm, nhấn giữ thẻ TTS Browser và chọn biểu tượng khóa nếu có.</string>
+    <string name="background_app_settings">Mở thông tin ứng dụng</string>
+    <string name="background_guide_hint">Tên và vị trí menu có thể khác theo phiên bản máy. Các lựa chọn này có thể tăng tiêu thụ pin. App không tự bật quyền; bạn vẫn có thể nghe ngay và điều chỉnh sau.</string>
+    <string name="background_guide_close">Đã hiểu</string>
 </resources>

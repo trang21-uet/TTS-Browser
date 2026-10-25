@@ -19,6 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -52,6 +56,8 @@ import com.trangnx.ttsbrowser.ui.reader.ReaderActions
 import com.trangnx.ttsbrowser.ui.reader.ReaderScreen
 import com.trangnx.ttsbrowser.ui.reader.ReaderViewModel
 import com.trangnx.ttsbrowser.ui.settings.SettingsScreen
+import com.trangnx.ttsbrowser.ui.settings.BackgroundPlaybackGuide
+import kotlinx.coroutines.launch
 
 /** Top-level destinations shown in the bottom navigation bar. */
 private enum class TopLevelRoute(val route: String, @StringRes val label: Int, val icon: ImageVector) {
@@ -67,8 +73,17 @@ private const val READER_ROUTE = "reader"
 fun AppNavHost() {
     val appContext = LocalContext.current.applicationContext
     val container = (appContext as TtsBrowserApp).container
+    var showBackgroundGuide by rememberSaveable { mutableStateOf(false) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val saveError = stringResource(R.string.settings_save_error)
+    BackgroundPlaybackGuide(
+        container.settingsRepository,
+        showBackgroundGuide,
+        onSaveError = { scope.launch { snackbar.showSnackbar(saveError) } },
+        onClose = { showBackgroundGuide = false },
+    )
     val fallbackMessage = stringResource(R.string.playback_edge_fallback)
     LaunchedEffect(container, lifecycle, fallbackMessage) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -149,7 +164,14 @@ fun AppNavHost() {
                 BrowserScreen(browserViewModel, extractionViewModel, browserWebView, Modifier.padding(innerPadding))
             }
             composable(TopLevelRoute.Library.route) { Box(Modifier.padding(innerPadding)) { LibraryScreen(libraryViewModel) } }
-            composable(TopLevelRoute.Settings.route) { Box(Modifier.padding(innerPadding)) { SettingsScreen() } }
+            composable(TopLevelRoute.Settings.route) {
+                Box(Modifier.padding(innerPadding)) {
+                    SettingsScreen(
+                        onBackgroundGuide = { showBackgroundGuide = true },
+                        onSystemVoiceSettingsClosed = { container.ttsPlayer.refreshSpeechEngine() },
+                    )
+                }
+            }
             composable(READER_ROUTE) {
                 val pageResult by extractionViewModel.pageResult.collectAsStateWithLifecycle()
                 ReaderScreen(readerViewModel, pageResult, readerActions)
