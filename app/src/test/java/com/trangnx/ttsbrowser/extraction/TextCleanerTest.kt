@@ -32,6 +32,17 @@ class TextCleanerTest {
     }
 
     @Test
+    fun dropsHashtagOnlyLines() {
+        val raw = "Chương 104: LÊN HẾT ĐI!\n#CTCL #akay\n“Chào đón ta sao?”\nTa thích #hashtag giữa câu."
+        assertEquals(
+            listOf("“Chào đón ta sao?”", "Ta thích #hashtag giữa câu."),
+            TextCleaner.paragraphs(raw, title = "Chương 104: LÊN HẾT ĐI!"),
+        )
+        assertTrue(TextCleaner.isJunk("#CTCL"))
+        assertFalse(TextCleaner.isJunk("#1 là con số may mắn của hắn."))
+    }
+
+    @Test
     fun watermarkAndAdLines() {
         assertTrue(TextCleaner.isJunk("Bạn đang đọc truyện tại akaytruyen.com"))
         assertTrue(TextCleaner.isJunk("Nguồn: truyenfull.vn"))

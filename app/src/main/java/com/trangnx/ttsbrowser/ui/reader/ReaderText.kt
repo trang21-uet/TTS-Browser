@@ -2,7 +2,6 @@ package com.trangnx.ttsbrowser.ui.reader
 
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,6 +86,7 @@ fun ReaderText(
         fontFamily = fontFamily ?: MaterialTheme.typography.bodyLarge.fontFamily,
         lineBreak = LineBreak.Paragraph,
     )
+    val headingStyle = MaterialTheme.typography.headlineSmall.copy(fontFamily = style.fontFamily, lineBreak = LineBreak.Heading)
     val highlight = MaterialTheme.colorScheme.primaryContainer
 
     LaunchedEffect(listState) {
@@ -107,14 +107,13 @@ fun ReaderText(
             modifier = Modifier.fillMaxHeight().widthIn(max = MAX_TEXT_WIDTH),
         ) {
             item {
-                Column(Modifier.padding(horizontal = TEXT_PADDING_H, vertical = 12.dp)) {
+                if (note != null) {
                     Text(
-                        chapter.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontFamily = style.fontFamily, lineBreak = LineBreak.Heading),
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = TEXT_PADDING_H, vertical = 12.dp),
                     )
-                    if (note != null) {
-                        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                    }
                 }
             }
             itemsIndexed(chapter.paragraphs) { index, paragraph ->
@@ -123,7 +122,7 @@ fun ReaderText(
                     spans = spans[index],
                     highlighted = if (current?.paragraphIndex == index) current.index else -1,
                     highlight = highlight,
-                    style = style,
+                    style = if (index == 0 && chapter.startsWithTitle) headingStyle else style,
                     onSentenceClick = {
                         follow = true
                         onClick(it)

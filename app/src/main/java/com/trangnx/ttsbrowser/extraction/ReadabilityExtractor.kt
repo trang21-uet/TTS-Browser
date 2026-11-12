@@ -77,10 +77,13 @@ class ReadabilityExtractor(
     private fun toChapter(raw: RawPage, pageUrl: String): Chapter {
         val url = raw.url.ifBlank { pageUrl }
         val links = ChapterLinkFinder.find(url, raw.links)
+        val title = TextCleaner.collapseSpaces(raw.title)
+        val body = TextCleaner.paragraphs(raw.text, title)
         return Chapter(
             url = url,
             title = raw.title,
-            paragraphs = TextCleaner.paragraphs(raw.text, raw.title),
+            paragraphs = if (title.isEmpty()) body else listOf(title) + body,
+            startsWithTitle = title.isNotEmpty(),
             prevUrl = links.prevUrl,
             nextUrl = links.nextUrl,
             source = raw.source,

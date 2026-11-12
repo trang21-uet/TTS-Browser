@@ -2,6 +2,16 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.6.2] - 2026-11-13
+
+### Changed
+
+- Tên chương giờ được đọc thành tiếng ở đầu chương (và tô sáng như một câu), thay vì chỉ hiển thị.
+
+### Fixed
+
+- Bỏ các dòng chỉ gồm hashtag (ví dụ `#CTCL #akay` ở đầu chương trên akaytruyen.com) khỏi nội dung truyện.
+
 ## [0.6.1] - 2026-11-13
 
 ### Fixed

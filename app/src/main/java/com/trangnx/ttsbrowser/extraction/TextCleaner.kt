@@ -8,7 +8,9 @@ object TextCleaner {
     private val invisibleChars = Regex("[\\u200B-\\u200D\\u2060\\uFEFF\\u00AD]")
     private val spaces = Regex("[\\s\\u00A0\\u3000]+")
     private val navSeparators = Regex("[|•·/\\\\<>«»‹›←→\\-–—\\[\\]()]+")
-    private val domain = Regex("\\b[a-z0-9-]+\\.(com|net|vn|org|info|xyz|me|io|co|top|site|tv)\\b")
+    /** A line made only of hashtags, e.g. the "#CTCL #akay" tags some sites put above the story. */
+    private val hashtagsOnly = Regex("^(#[\\p{L}\\p{N}_]+\\s*)+$")
+    private val domain =Regex("\\b[a-z0-9-]+\\.(com|net|vn|org|info|xyz|me|io|co|top|site|tv)\\b")
     // Specific phrases only: common words like "tại"/"đọc" also appear in story sentences that mention a domain.
     private val watermarkPhrases = listOf(
         "đọc truyện", "đọc full", "đọc chương", "truy cập", "nguồn:", "website", "theo dõi", "ủng hộ",
@@ -26,15 +28,18 @@ object TextCleaner {
     fun paragraphs(raw: String, title: String = ""): List<String> {
         val lines = raw.replace(invisibleChars, "")
             .split('\n')
-            .map { it.replace(spaces, " ").trim() }
+            .map(::collapseSpaces)
             .filter { it.isNotEmpty() && !isJunk(it) }
         // Content often repeats the chapter heading as its first line.
-        val normalizedTitle = title.replace(spaces, " ").trim()
+        val normalizedTitle = collapseSpaces(title)
         return if (normalizedTitle.isEmpty()) lines else lines.dropWhile { it.equals(normalizedTitle, ignoreCase = true) }
     }
 
+    fun collapseSpaces(text: String): String = text.replace(spaces, " ").trim()
+
     internal fun isJunk(line: String): Boolean {
         if (line.none { it.isLetterOrDigit() }) return true
+        if (hashtagsOnly.matches(line)) return true
         val lower = line.lowercase()
         val parts = lower.split(navSeparators).map { it.trim() }.filter { it.isNotEmpty() }
         if (parts.isNotEmpty() && parts.all { it in navPhrases }) return true
