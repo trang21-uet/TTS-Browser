@@ -113,7 +113,7 @@ fun AppNavHost() {
     val extractionViewModel: ExtractionViewModel = viewModel(factory = ExtractionViewModel.Factory)
     val readerViewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory)
     val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory)
-    val browserWebView = rememberBrowserWebView(browserViewModel)
+    val browserWebView = rememberBrowserWebView(browserViewModel, container.adBlocker)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination

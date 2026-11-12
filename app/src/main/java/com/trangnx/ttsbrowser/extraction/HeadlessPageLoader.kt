@@ -20,7 +20,11 @@ import kotlinx.coroutines.withTimeoutOrNull
  * saved story or the next chapter while the browser tab is not showing it (e.g. from the notification).
  * Shares cookies with the browser tab, so a site that needs a login or passed a challenge there works here too.
  */
-class HeadlessPageLoader(context: Context, private val extractor: ReadabilityExtractor) {
+class HeadlessPageLoader(
+    context: Context,
+    private val extractor: ReadabilityExtractor,
+    private val adBlocker: AdBlocker,
+) {
     private val appContext = context.applicationContext
 
     suspend fun load(url: String): ExtractionResult = withContext(Dispatchers.Main) { loadAndExtract(url) }
@@ -35,6 +39,8 @@ class HeadlessPageLoader(context: Context, private val extractor: ReadabilityExt
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                     request.url.scheme?.lowercase().let { it != "http" && it != "https" }
+
+                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) = adBlocker.intercept(request)
 
                 // Redirects and challenge pages finish more than once: wait until no other load follows.
                 override fun onPageFinished(view: WebView, url: String?) {

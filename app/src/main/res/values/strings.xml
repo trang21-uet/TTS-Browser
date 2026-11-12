@@ -126,6 +126,9 @@
     <string name="settings_speech_adjustments">Điều chỉnh giọng đọc</string>
     <string name="settings_per_engine_hint">Tốc độ và cao độ được lưu riêng cho từng nguồn giọng đọc.</string>
     <string name="settings_pitch">Cao độ: %1$.1fx</string>
+    <string name="settings_browser_title">Trình duyệt</string>
+    <string name="settings_ad_block">Chặn quảng cáo</string>
+    <string name="settings_ad_block_hint">Chặn các yêu cầu tới máy chủ quảng cáo và theo dõi để trang tải nhanh hơn. Tắt nếu một trang hiển thị sai.</string>
     <string name="settings_reading_title">Đọc truyện</string>
     <string name="settings_auto_hide_bars">Tự ẩn thanh công cụ khi cuộn xuống</string>
     <string name="settings_auto_hide_bars_hint">Trình duyệt và màn hình đọc ẩn thanh địa chỉ, thanh điều khiển và thanh dưới khi cuộn xuống; cuộn lên để hiện lại. Phông chữ, cỡ chữ và màu đổi trong nút Hiển thị của màn hình đọc.</string>

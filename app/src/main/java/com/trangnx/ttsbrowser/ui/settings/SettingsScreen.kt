@@ -56,6 +56,7 @@ fun SettingsScreen(
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val autoUpdateCheck by viewModel.autoUpdateCheck.collectAsStateWithLifecycle()
     val autoHideBars by viewModel.autoHideBars.collectAsStateWithLifecycle()
+    val adBlockEnabled by viewModel.adBlockEnabled.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val saveError = stringResource(R.string.settings_save_error)
     LaunchedEffect(viewModel, saveError) {
@@ -73,7 +74,11 @@ fun SettingsScreen(
                 onRate = viewModel::setRate, onPitch = viewModel::setPitch,
                 onBackgroundGuide = onBackgroundGuide,
                 onSystemVoiceSettingsClosed = onSystemVoiceSettingsClosed,
-                reading = { ReadingSettingsSection(autoHideBars, !saving, viewModel::setAutoHideBars) },
+                reading = {
+                    ReadingSettingsSection(autoHideBars, !saving, viewModel::setAutoHideBars)
+                    HorizontalDivider()
+                    BrowserSettingsSection(adBlockEnabled, !saving, viewModel::setAdBlockEnabled)
+                },
                 update = {
                     UpdateSettingsSection(
                         viewModel.installedVersion, updateState, autoUpdateCheck, !saving,

@@ -22,6 +22,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import com.trangnx.ttsbrowser.extraction.AdBlocker
 import com.trangnx.ttsbrowser.extraction.applyCookieDefaults
 import com.trangnx.ttsbrowser.extraction.applyPageDefaults
 import com.trangnx.ttsbrowser.extraction.flushPageCookies
@@ -43,12 +44,12 @@ interface BrowserPageListener {
  * Paused/resumed with the lifecycle and destroyed when leaving composition or when its renderer dies.
  */
 @Composable
-fun rememberBrowserWebView(listener: BrowserPageListener): WebView {
+fun rememberBrowserWebView(listener: BrowserPageListener, adBlocker: AdBlocker): WebView {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var generation by remember { mutableIntStateOf(0) }
     val webView = remember(context, generation) {
-        createBrowserWebView(context, listener) {
+        createBrowserWebView(context, listener, adBlocker) {
             listener.onRenderProcessGone()
             generation++
         }
@@ -75,7 +76,12 @@ fun rememberBrowserWebView(listener: BrowserPageListener): WebView {
     return webView
 }
 
-private fun createBrowserWebView(context: Context, listener: BrowserPageListener, onRenderGone: () -> Unit): WebView =
+private fun createBrowserWebView(
+    context: Context,
+    listener: BrowserPageListener,
+    adBlocker: AdBlocker,
+    onRenderGone: () -> Unit,
+): WebView =
     WebView(context).apply {
         settings.applyPageDefaults()
         applyCookieDefaults()
@@ -88,7 +94,7 @@ private fun createBrowserWebView(context: Context, listener: BrowserPageListener
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, true)
         }
-        webViewClient = BrowserWebViewClient(listener, onRenderGone)
+        webViewClient = BrowserWebViewClient(listener, adBlocker, onRenderGone)
         webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) = listener.onProgressChanged(newProgress)
             override fun onReceivedTitle(view: WebView, title: String?) = listener.onTitleReceived(title.orEmpty())
@@ -97,8 +103,11 @@ private fun createBrowserWebView(context: Context, listener: BrowserPageListener
 
 private class BrowserWebViewClient(
     private val listener: BrowserPageListener,
+    private val adBlocker: AdBlocker,
     private val onRenderGone: () -> Unit,
 ) : WebViewClient() {
+
+    override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) = adBlocker.intercept(request)
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val scheme = request.url.scheme?.lowercase()

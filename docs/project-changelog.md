@@ -2,6 +2,12 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.6.0] - 2026-11-13
+
+### Added
+
+- Chặn quảng cáo trong trình duyệt: bỏ qua các yêu cầu tới máy chủ quảng cáo và theo dõi (danh sách `ad-hosts.txt` đóng gói trong app) để trang tải nhanh và ít popup hơn; không chặn trang đang mở. Cũng áp dụng khi app tải chương nền. Bật mặc định, tắt ở **Cài đặt → Trình duyệt**.
+
 ## [0.5.0] - 2026-11-13
 
 ### Added

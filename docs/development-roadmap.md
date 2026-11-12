@@ -28,5 +28,5 @@ Phase 6 và 7 có thể làm song song.
 - Tự động sang chương sau
 - Adapter CSS selector theo trang
 - Tải trước / đọc offline
-- Chặn quảng cáo (host blocklist)
+- ~~Chặn quảng cáo (host blocklist)~~ — xong ở 0.6.0
 - Nhập TXT/EPUB

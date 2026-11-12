@@ -148,6 +148,11 @@ class SettingsRepository(context: Context) {
 
     suspend fun setAutoHideBars(enabled: Boolean) = edit { it[AUTO_HIDE_BARS] = enabled }
 
+    /** Whether requests to ad and tracker hosts are blocked in the browser. On by default. */
+    val adBlockEnabled: Flow<Boolean> = preferences.map { it[AD_BLOCK_ENABLED] ?: true }.distinctUntilChanged()
+
+    suspend fun setAdBlockEnabled(enabled: Boolean) = edit { it[AD_BLOCK_ENABLED] = enabled }
+
     suspend fun setEngine(engine: SpeechEngine) = edit { it[SpeechPreferences.ENGINE] = engine.name }
 
     suspend fun setEdgeVoice(voice: String) = edit { it[SpeechPreferences.EDGE_VOICE] = SpeechPreferences.voice(voice) }
@@ -177,6 +182,7 @@ class SettingsRepository(context: Context) {
         val READER_TEXT_COLOR = stringPreferencesKey("readerTextColor")
         val READER_FONT = stringPreferencesKey("readerFont")
         val AUTO_HIDE_BARS = booleanPreferencesKey("autoHideBars")
+        val AD_BLOCK_ENABLED = booleanPreferencesKey("adBlockEnabled")
         val LIBRARY_LAYOUT = stringPreferencesKey("libraryLayout")
     }
 }

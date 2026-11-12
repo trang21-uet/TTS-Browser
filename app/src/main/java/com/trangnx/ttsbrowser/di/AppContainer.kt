@@ -16,6 +16,7 @@ import com.trangnx.ttsbrowser.data.repo.BrowsingRepository
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
 import com.trangnx.ttsbrowser.data.repo.SiteRuleRepository
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
+import com.trangnx.ttsbrowser.extraction.AdBlocker
 import com.trangnx.ttsbrowser.extraction.ElementPicker
 import com.trangnx.ttsbrowser.extraction.ExtractionScripts
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
@@ -120,7 +121,13 @@ class AppContainer(context: Context) {
 
     val playbackConnection: PlaybackConnection by lazy { PlaybackConnection(appContext, ttsPlayer) }
 
-    val headlessPageLoader: HeadlessPageLoader by lazy { HeadlessPageLoader(appContext, readabilityExtractor) }
+    val adBlocker: AdBlocker by lazy {
+        AdBlocker(appContext.assets).also { blocker ->
+            appScope.launch { settingsRepository.adBlockEnabled.collect { blocker.enabled = it } }
+        }
+    }
+
+    val headlessPageLoader: HeadlessPageLoader by lazy { HeadlessPageLoader(appContext, readabilityExtractor, adBlocker) }
 
     val adjacentChapterLoader: AdjacentChapterLoader by lazy { AdjacentChapterLoader(appScope, headlessPageLoader, playbackConnection) }
 

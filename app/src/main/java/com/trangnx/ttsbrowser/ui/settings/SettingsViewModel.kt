@@ -31,6 +31,8 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
     val autoHideBars: StateFlow<Boolean> = repository.autoHideBars
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
+    val adBlockEnabled: StateFlow<Boolean> = repository.adBlockEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
     val updateState = updates.state
     val installedVersion = updates.installedVersion
 
@@ -45,6 +47,7 @@ class SettingsViewModel(
     fun setPitch(pitch: Float) = save { repository.setPitch(pitch) }
     fun setAutoUpdateCheck(enabled: Boolean) = save { repository.setAutoUpdateCheck(enabled) }
     fun setAutoHideBars(enabled: Boolean) = save { repository.setAutoHideBars(enabled) }
+    fun setAdBlockEnabled(enabled: Boolean) = save { repository.setAdBlockEnabled(enabled) }
     fun onUpdateAction() = updates.primaryAction()
 
     private fun save(action: suspend () -> Unit) {
