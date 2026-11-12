@@ -86,6 +86,13 @@
     <string name="sleep_timer_end_of_chapter_active">Sẽ dừng khi hết chương</string>
 
     <string name="library_empty">Thư viện trống. Mở một chương truyện, bấm Đọc rồi chọn Lưu truyện ở menu.</string>
+    <string name="library_title">Thư viện</string>
+    <string name="library_layout_grid">Xem dạng lưới</string>
+    <string name="library_layout_list">Xem dạng danh sách</string>
+    <string name="library_more">Tùy chọn</string>
+    <string name="library_cover_change">Chọn ảnh bìa từ máy</string>
+    <string name="library_cover_clear">Xóa ảnh bìa</string>
+    <string name="library_cover_failed">Không đọc được ảnh đã chọn.</string>
     <string name="library_reading">Đang ở: %1$s</string>
     <string name="library_delete_title">Xóa khỏi thư viện?</string>
     <string name="library_delete_message">Chỉ xóa truyện và vị trí đã lưu trong app, không ảnh hưởng trang web.</string>

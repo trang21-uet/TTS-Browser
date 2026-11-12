@@ -32,6 +32,12 @@ abstract class LibraryDao {
     @Query("UPDATE book SET updatedAt = :at WHERE id = :bookId")
     protected abstract suspend fun touch(bookId: Long, at: Long)
 
+    @Query("SELECT coverFile FROM book WHERE id = :bookId")
+    abstract suspend fun coverFileOf(bookId: Long): String?
+
+    @Query("UPDATE book SET coverFile = :file WHERE id = :bookId")
+    abstract suspend fun setCoverFile(bookId: Long, file: String?)
+
     @Query("DELETE FROM book WHERE id = :bookId")
     abstract suspend fun delete(bookId: Long)
 
@@ -44,10 +50,11 @@ abstract class LibraryDao {
 
     /** Finds or creates the book for ([host], [title]) and stores [progress] (its `bookId` is ignored) for it. */
     @Transaction
-    open suspend fun saveBook(host: String, title: String, progress: ProgressEntity): Long {
-        val id = find(host, title)?.id
-            ?: insert(BookEntity(title = title, host = host, createdAt = progress.updatedAt, updatedAt = progress.updatedAt))
-        saveProgress(progress.copy(bookId = id))
-        return id
+    open suspend fun saveBook(host: String, title: String, progress: ProgressEntity): BookEntity {
+        val book = find(host, title)
+            ?: BookEntity(title = title, host = host, createdAt = progress.updatedAt, updatedAt = progress.updatedAt)
+                .let { it.copy(id = insert(it)) }
+        saveProgress(progress.copy(bookId = book.id))
+        return book
     }
 }

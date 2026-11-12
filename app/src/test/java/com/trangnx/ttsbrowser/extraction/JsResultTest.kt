@@ -33,6 +33,13 @@ class JsResultTest {
     }
 
     @Test
+    fun parsesCoverUrl() {
+        val withCover = JsResult.rawPage(asEvaluateResult("""{"ok":true,"coverUrl":"https://a.com/cover.jpg"}"""))
+        assertEquals("https://a.com/cover.jpg", withCover.coverUrl)
+        assertEquals("", JsResult.rawPage(asEvaluateResult("""{"ok":true}""")).coverUrl)
+    }
+
+    @Test
     fun scriptErrorAndMissingResult() {
         val error = JsResult.rawPage(asEvaluateResult("""{"ok":false,"error":"boom"}"""))
         assertFalse(error.ok)

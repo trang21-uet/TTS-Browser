@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import com.trangnx.ttsbrowser.data.settings.SpeechEngine
 import com.trangnx.ttsbrowser.data.settings.SpeechSettings
 import com.trangnx.ttsbrowser.R
+import com.trangnx.ttsbrowser.data.cover.CoverStore
 import com.trangnx.ttsbrowser.data.db.AppDatabase
 import com.trangnx.ttsbrowser.data.repo.BrowsingRepository
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
@@ -64,7 +65,7 @@ class AppContainer(context: Context) {
         ReadabilityExtractor(extractionScripts, siteRuleRepository)
     }
 
-    val libraryRepository: LibraryRepository by lazy { LibraryRepository(database.libraryDao()) }
+    val libraryRepository: LibraryRepository by lazy { LibraryRepository(database.libraryDao(), CoverStore(appContext)) }
 
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(appContext) }
 

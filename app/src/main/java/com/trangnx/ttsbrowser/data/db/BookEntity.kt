@@ -12,4 +12,6 @@ data class BookEntity(
     val host: String,
     val createdAt: Long,
     val updatedAt: Long,
+    /** Name of the cover image file kept by `CoverStore`; null: no cover. */
+    val coverFile: String? = null,
 )

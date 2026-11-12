@@ -85,6 +85,7 @@ class ReadabilityExtractor(
             nextUrl = links.nextUrl,
             source = raw.source,
             pageTitle = raw.pageTitle,
+            coverUrl = raw.coverUrl,
         )
     }
 

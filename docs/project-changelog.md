@@ -2,6 +2,17 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.4.0] - 2026-11-12
+
+### Added
+
+- Ảnh bìa cho từng truyện: khi lưu truyện, app lấy ảnh đại diện (`og:image`) của trang truyện làm bìa; có thể đổi sang ảnh trong máy hoặc xóa bằng menu ⋮ của truyện.
+- Thư viện có hai cách xem, đổi bằng nút ở đầu màn hình (được nhớ lại): lưới 2 truyện mỗi dòng với ảnh bìa lớn, hoặc danh sách; cả hai đều hiện tên truyện và chương đang đọc.
+
+### Changed
+
+- Cơ sở dữ liệu thêm cột ảnh bìa (tự migrate, giữ nguyên truyện đã lưu); truyện đã lưu trước đây chưa có bìa cho đến khi chọn ảnh hoặc lưu lại từ trang truyện.
+
 ## [0.3.1] - 2026-11-12
 
 ### Fixed

@@ -1,14 +1,18 @@
 package com.trangnx.ttsbrowser.ui.library
 
 import android.database.SQLException
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.trangnx.ttsbrowser.TtsBrowserApp
+import com.trangnx.ttsbrowser.data.db.BookEntity
 import com.trangnx.ttsbrowser.data.db.BookWithProgress
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
+import com.trangnx.ttsbrowser.data.settings.LibraryLayout
+import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
 import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
 import com.trangnx.ttsbrowser.playback.LoadedChapter
@@ -24,6 +28,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.IOException
 
 /** A saved story's chapter to show in the reader at [startIndex] (unless it is playing already). */
 data class ResumeRequest(val chapter: LoadedChapter, val startIndex: Int)
@@ -36,6 +42,7 @@ class LibraryViewModel(
     private val library: LibraryRepository,
     private val loader: HeadlessPageLoader,
     private val playback: PlaybackConnection,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     /** Null until read. */
@@ -52,6 +59,13 @@ class LibraryViewModel(
 
     private val failureReasons = Channel<ExtractionResult.Reason>(Channel.BUFFERED)
     val failures: Flow<ExtractionResult.Reason> = failureReasons.receiveAsFlow()
+
+    private val coverFailures = Channel<Unit>(Channel.BUFFERED)
+    val coverFailed: Flow<Unit> = coverFailures.receiveAsFlow()
+
+    /** Null until read, so the screen does not flash the default layout. */
+    val layout: StateFlow<LibraryLayout?> = settings.libraryLayout
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     fun open(item: BookWithProgress) {
         val progress = item.progress ?: return
@@ -83,6 +97,40 @@ class LibraryViewModel(
         }
     }
 
+    /** The cover file of [book], if it has one. */
+    fun coverOf(book: BookEntity): File? = library.coverFile(book)
+
+    /** Uses the image the user picked as [item]'s cover; [coverFailed] fires if it is not a readable image. */
+    fun setCover(item: BookWithProgress, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                if (!library.setCoverFromUri(item.book.id, uri)) coverFailures.trySend(Unit)
+            } catch (_: SQLException) {
+                coverFailures.trySend(Unit)
+            }
+        }
+    }
+
+    fun clearCover(item: BookWithProgress) {
+        viewModelScope.launch {
+            try {
+                library.clearCover(item.book.id)
+            } catch (_: SQLException) {
+                // Storage failure: the cover stays.
+            }
+        }
+    }
+
+    fun setLayout(layout: LibraryLayout) {
+        viewModelScope.launch {
+            try {
+                settings.setLibraryLayout(layout)
+            } catch (_: IOException) {
+                // Storage failure: the old layout stays.
+            }
+        }
+    }
+
     fun delete(item: BookWithProgress) {
         viewModelScope.launch {
             try {
@@ -99,7 +147,12 @@ class LibraryViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as TtsBrowserApp).container
-                LibraryViewModel(container.libraryRepository, container.headlessPageLoader, container.playbackConnection)
+                LibraryViewModel(
+                    container.libraryRepository,
+                    container.headlessPageLoader,
+                    container.playbackConnection,
+                    container.settingsRepository,
+                )
             }
         }
     }

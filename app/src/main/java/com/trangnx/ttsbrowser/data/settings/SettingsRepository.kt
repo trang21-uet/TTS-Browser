@@ -25,6 +25,9 @@ enum class ReaderTheme { System, Light, Dark, Sepia }
 
 enum class SpeechEngine { System, Edge }
 
+/** How the library shows its stories: two cover cards per row, or one row each. */
+enum class LibraryLayout { Grid, List }
+
 data class SpeechSettings(
     val engine: SpeechEngine = SpeechEngine.System,
     val edgeVoice: String = EDGE_VOICES.first(),
@@ -116,6 +119,12 @@ class SettingsRepository(context: Context) {
         }
         .distinctUntilChanged()
 
+    val libraryLayout: Flow<LibraryLayout> = preferences
+        .map { prefs -> LibraryLayout.entries.firstOrNull { it.name == prefs[LIBRARY_LAYOUT] } ?: LibraryLayout.Grid }
+        .distinctUntilChanged()
+
+    suspend fun setLibraryLayout(layout: LibraryLayout) = edit { it[LIBRARY_LAYOUT] = layout.name }
+
     suspend fun setFontSize(sp: Int) = edit { it[FONT_SIZE] = clampFontSize(sp) }
 
     suspend fun setReaderTheme(theme: ReaderTheme) = edit { it[READER_THEME] = theme.name }
@@ -146,5 +155,6 @@ class SettingsRepository(context: Context) {
         val BACKGROUND_GUIDE_SEEN = booleanPreferencesKey("backgroundGuideSeen")
         val AUTO_UPDATE_CHECK = booleanPreferencesKey("autoUpdateCheck")
         val READER_THEME =stringPreferencesKey("readerTheme")
+        val LIBRARY_LAYOUT = stringPreferencesKey("libraryLayout")
     }
 }

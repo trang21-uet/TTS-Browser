@@ -86,6 +86,19 @@ function ttsExtractPage(args) {
     return clip((og && og.getAttribute("content")) || document.title, 300);
   }
 
+  // The page's preview image (og:image / twitter:image) as an absolute http(s) URL: usually the story's cover.
+  function coverUrl() {
+    var meta = document.querySelector("meta[property='og:image'], meta[name='og:image'], meta[name='twitter:image'], meta[property='twitter:image']");
+    var value = meta && meta.getAttribute("content");
+    if (!value) return "";
+    try {
+      var url = new URL(value, location.href);
+      return /^https?:$/.test(url.protocol) ? url.href : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   function collectLinks() {
     var relNext = document.querySelector("link[rel~='next' i], a[rel~='next' i]");
     var relPrev = document.querySelector("link[rel~='prev' i], a[rel~='prev' i], link[rel~='previous' i], a[rel~='previous' i]");
@@ -125,6 +138,7 @@ function ttsExtractPage(args) {
       url: location.href,
       title: content ? content.title : clip(document.title, 300),
       pageTitle: pageTitle(),
+      coverUrl: coverUrl(),
       text: content ? content.text : "",
       source: source,
       selectorMissed: selectorMissed,
