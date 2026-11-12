@@ -2,6 +2,13 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.6.1] - 2026-11-13
+
+### Fixed
+
+- Màu nền và màu chữ chọn trong **Hiển thị** chỉ áp dụng cho nội dung truyện; thanh tiêu đề, thanh điều khiển và các bảng/hộp thoại của màn hình đọc giữ theme của app.
+- Câu trong nội dung truyện không còn bị tô xanh và gạch dưới.
+
 ## [0.6.0] - 2026-11-13
 
 ### Added

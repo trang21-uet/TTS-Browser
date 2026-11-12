@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.LineBreak
@@ -159,7 +160,12 @@ private fun ParagraphText(
         buildAnnotatedString {
             append(paragraph)
             for (span in spans) {
-                val link = LinkAnnotation.Clickable(span.index.toString(), linkInteractionListener = { onClick(span.index) })
+                // Explicit empty style: without it Compose paints links blue and underlined.
+                val link = LinkAnnotation.Clickable(
+                    tag = span.index.toString(),
+                    styles = TextLinkStyles(SpanStyle()),
+                    linkInteractionListener = { onClick(span.index) },
+                )
                 addLink(link, span.start, span.end)
                 if (span.index == highlighted) addStyle(SpanStyle(background = highlight), span.start, span.end)
             }

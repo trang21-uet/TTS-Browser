@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -105,115 +106,118 @@ fun ReaderScreen(viewModel: ReaderViewModel, pageResult: ExtractionResult.Succes
         else -> null
     }
 
-    ReaderColorTheme(readerSettings.theme, readerSettings.textColor) {
-        Scaffold(
-            modifier = Modifier.nestedScroll(bars.nestedScroll),
-            topBar = {
-                // The status bar strip stays so content never slides under it while the bar is away.
-                Column {
-                    Spacer(
-                        Modifier
-                            .fillMaxWidth()
-                            .windowInsetsTopHeight(WindowInsets.statusBars)
-                            .background(MaterialTheme.colorScheme.surface),
-                    )
-                    AnimatedVisibility(
-                        visible = !barsHidden,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                TopAppBar(
-                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Horizontal),
-                    title = { Text(chapter.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    navigationIcon = {
-                        IconButton(onClick = actions.onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.reader_back))
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showSleepTimer = true }) {
-                            val active = sleepTimer != SleepTimerState.Off
-                            Icon(
-                                if (active) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
-                                stringResource(R.string.sleep_timer),
-                            )
-                        }
-                        IconButton(onClick = { showDisplay = true }) {
-                            Icon(Icons.Outlined.FormatSize, stringResource(R.string.reader_display))
-                        }
-                        ReaderMenu(
-                            onOpenPage = { actions.onOpenPage(chapter.url) },
-                            saved = savedBook != null,
-                            onSave = { showSave = true },
-                            onPickOther = actions.onPickOther.takeIf { samePage != null },
-                            onClearRule = actions.onClearRule.takeIf { samePage?.chapter?.source == ContentSource.Selector },
-                        )
-                    },
+    Scaffold(
+        modifier = Modifier.nestedScroll(bars.nestedScroll),
+        topBar = {
+            // The status bar strip stays so content never slides under it while the bar is away.
+            Column {
+                Spacer(
+                    Modifier
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.statusBars)
+                        .background(MaterialTheme.colorScheme.surface),
                 )
-                    }
-                }
-            },
-            bottomBar = {
                 AnimatedVisibility(
                     visible = !barsHidden,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
-                ReaderControls(
-                    state = playback,
-                    sentenceCount = current.sentences.size,
-                    onPrevious = viewModel::previousSentence,
-                    onTogglePlay = viewModel::togglePlayPause,
-                    onNext = viewModel::nextSentence,
-                    prevChapterUrl = chapter.prevUrl,
-                    nextChapterUrl = chapter.nextUrl,
-                    openingChapter = openingChapter,
-                    chapterError = chapterError?.let { stringResource(it.message) },
-                    onOpenChapter = viewModel::openChapter,
-                )
-                }
-            },
-        ) { padding ->
-            ReaderText(
-                loaded = current,
-                currentIndex = if (isLoaded) playback.sentenceIndex else -1,
-                fontSizeSp = readerSettings.fontSizeSp,
-                fontFamily = readerSettings.font.family,
-                note = note?.let { stringResource(it) },
-                onSentenceClick = viewModel::playFrom,
-                modifier = Modifier.padding(padding),
-            )
-        }
-        if (showSave) {
-            SaveBookDialog(
-                suggestedName = remember { viewModel.suggestedBookName() },
-                onSave = {
-                    viewModel.saveBook(it)
-                    showSave = false
+            TopAppBar(
+                windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Horizontal),
+                title = { Text(chapter.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = {
+                    IconButton(onClick = actions.onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.reader_back))
+                    }
                 },
-                onDismiss = { showSave = false },
+                actions = {
+                    IconButton(onClick = { showSleepTimer = true }) {
+                        val active = sleepTimer != SleepTimerState.Off
+                        Icon(
+                            if (active) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                            stringResource(R.string.sleep_timer),
+                        )
+                    }
+                    IconButton(onClick = { showDisplay = true }) {
+                        Icon(Icons.Outlined.FormatSize, stringResource(R.string.reader_display))
+                    }
+                    ReaderMenu(
+                        onOpenPage = { actions.onOpenPage(chapter.url) },
+                        saved = savedBook != null,
+                        onSave = { showSave = true },
+                        onPickOther = actions.onPickOther.takeIf { samePage != null },
+                        onClearRule = actions.onClearRule.takeIf { samePage?.chapter?.source == ContentSource.Selector },
+                    )
+                },
             )
-        }
-        if (showSleepTimer) {
-            SleepTimerSheet(
-                state = sleepTimer,
-                onMinutes = viewModel::startSleepTimer,
-                onEndOfChapter = viewModel::startSleepTimerAtChapterEnd,
-                onOff = viewModel::cancelSleepTimer,
-                onDismiss = { showSleepTimer = false },
+                }
+            }
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = !barsHidden,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+            ReaderControls(
+                state = playback,
+                sentenceCount = current.sentences.size,
+                onPrevious = viewModel::previousSentence,
+                onTogglePlay = viewModel::togglePlayPause,
+                onNext = viewModel::nextSentence,
+                prevChapterUrl = chapter.prevUrl,
+                nextChapterUrl = chapter.nextUrl,
+                openingChapter = openingChapter,
+                chapterError = chapterError?.let { stringResource(it.message) },
+                onOpenChapter = viewModel::openChapter,
             )
+            }
+        },
+    ) { padding ->
+        // Only the story takes the reader's background / text color; bars and sheets keep the app theme.
+        ReaderColorTheme(readerSettings.theme, readerSettings.textColor) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                ReaderText(
+                    loaded = current,
+                    currentIndex = if (isLoaded) playback.sentenceIndex else -1,
+                    fontSizeSp = readerSettings.fontSizeSp,
+                    fontFamily = readerSettings.font.family,
+                    note = note?.let { stringResource(it) },
+                    onSentenceClick = viewModel::playFrom,
+                    modifier = Modifier.padding(padding),
+                )
+            }
         }
-        if (showDisplay) {
-            ReaderDisplaySheet(
-                settings = readerSettings,
-                onFontSize = viewModel::setFontSize,
-                onTheme = viewModel::setTheme,
-                onTextColor = viewModel::setTextColor,
-                onFont = viewModel::setFont,
-                onRate = viewModel::setRate,
-                onDismiss = { showDisplay = false },
-            )
-        }
+    }
+    if (showSave) {
+        SaveBookDialog(
+            suggestedName = remember { viewModel.suggestedBookName() },
+            onSave = {
+                viewModel.saveBook(it)
+                showSave = false
+            },
+            onDismiss = { showSave = false },
+        )
+    }
+    if (showSleepTimer) {
+        SleepTimerSheet(
+            state = sleepTimer,
+            onMinutes = viewModel::startSleepTimer,
+            onEndOfChapter = viewModel::startSleepTimerAtChapterEnd,
+            onOff = viewModel::cancelSleepTimer,
+            onDismiss = { showSleepTimer = false },
+        )
+    }
+    if (showDisplay) {
+        ReaderDisplaySheet(
+            settings = readerSettings,
+            onFontSize = viewModel::setFontSize,
+            onTheme = viewModel::setTheme,
+            onTextColor = viewModel::setTextColor,
+            onFont = viewModel::setFont,
+            onRate = viewModel::setRate,
+            onDismiss = { showDisplay = false },
+        )
     }
 }
 
