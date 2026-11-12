@@ -15,6 +15,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.TTS_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -25,13 +27,30 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
+      # Secrets are unavailable on fork PRs; the release APK is then left unsigned.
+      - name: Decode release keystore
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "TTS_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build debug and release APKs
+        env:
+          TTS_KEYSTORE_PASSWORD: ${{ secrets.TTS_KEYSTORE_PASSWORD }}
+          TTS_KEY_ALIAS: ${{ secrets.TTS_KEY_ALIAS }}
+          TTS_KEY_PASSWORD: ${{ secrets.TTS_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon :app:assembleDebug
+          ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
           name: tts-browser-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tts-browser-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
