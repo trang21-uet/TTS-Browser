@@ -30,6 +30,12 @@ import com.trangnx.ttsbrowser.tts.FallbackTtsEngine
 import com.trangnx.ttsbrowser.tts.edge.EdgeTtsClient
 import com.trangnx.ttsbrowser.tts.edge.EdgeTtsEngine
 import com.trangnx.ttsbrowser.ui.browser.message
+import com.trangnx.ttsbrowser.BuildConfig
+import com.trangnx.ttsbrowser.update.ApkInstaller
+import com.trangnx.ttsbrowser.update.AppVersion
+import com.trangnx.ttsbrowser.update.UpdateController
+import com.trangnx.ttsbrowser.update.UpdateRepository
+import java.io.File
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -99,6 +105,16 @@ class AppContainer(context: Context) {
                 }
             }
         }
+    }
+
+    val updateController: UpdateController by lazy {
+        UpdateController(
+            appScope,
+            UpdateRepository(File(appContext.cacheDir, "updates")),
+            ApkInstaller(appContext),
+            settingsRepository,
+            requireNotNull(AppVersion.parse(BuildConfig.VERSION_NAME)) { "Invalid versionName" },
+        )
     }
 
     val playbackConnection: PlaybackConnection by lazy { PlaybackConnection(appContext, ttsPlayer) }

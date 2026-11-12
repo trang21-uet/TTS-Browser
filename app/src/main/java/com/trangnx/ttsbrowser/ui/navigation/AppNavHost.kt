@@ -43,6 +43,7 @@ import androidx.navigation.compose.rememberNavController
 import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.TtsBrowserApp
 import com.trangnx.ttsbrowser.playback.LoadedChapter
+import com.trangnx.ttsbrowser.update.UpdateController
 import com.trangnx.ttsbrowser.ui.browser.BrowserScreen
 import com.trangnx.ttsbrowser.ui.browser.BrowserViewModel
 import com.trangnx.ttsbrowser.ui.browser.ExtractionViewModel
@@ -57,6 +58,10 @@ import com.trangnx.ttsbrowser.ui.reader.ReaderScreen
 import com.trangnx.ttsbrowser.ui.reader.ReaderViewModel
 import com.trangnx.ttsbrowser.ui.settings.SettingsScreen
 import com.trangnx.ttsbrowser.ui.settings.BackgroundPlaybackGuide
+import com.trangnx.ttsbrowser.ui.update.UpdateBanner
+import com.trangnx.ttsbrowser.ui.update.UpdateDialog
+import com.trangnx.ttsbrowser.update.UpdateEvent
+import com.trangnx.ttsbrowser.update.UpdateState
 import kotlinx.coroutines.launch
 
 /** Top-level destinations shown in the bottom navigation bar. */
@@ -92,6 +97,7 @@ fun AppNavHost() {
     }
     // Activity-scoped (outside NavHost): the page survives switching tabs, and the reader talks to
     // the browser page through the extraction view model.
+    UpdatePrompts(container.updateController, snackbar)
     val browserViewModel: BrowserViewModel = viewModel(factory = BrowserViewModel.Factory)
     val extractionViewModel: ExtractionViewModel = viewModel(factory = ExtractionViewModel.Factory)
     val readerViewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory)
@@ -145,6 +151,7 @@ fun AppNavHost() {
         bottomBar = {
             if (currentDestination?.route != READER_ROUTE) {
                 Column {
+                    UpdateBanner(container.updateController)
                     MiniPlayer(readerViewModel) {
                         readerViewModel.showLoaded()
                         navController.openReader()
@@ -175,6 +182,35 @@ fun AppNavHost() {
         }
     }
 }
+
+/** Launch-time check, the "new version" dialog and the snackbar for update outcomes. */
+@Composable
+private fun UpdatePrompts(controller: UpdateController, snackbar: SnackbarHostState) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val state by controller.state.collectAsStateWithLifecycle()
+    val dialogVisible by controller.dialogVisible.collectAsStateWithLifecycle()
+    val messages = UpdateEvent.entries.associateWith { stringResource(it.message) }
+    LaunchedEffect(controller) { controller.checkOnLaunch() }
+    LaunchedEffect(controller, lifecycle, messages) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            controller.events.collect { snackbar.showSnackbar(messages.getValue(it)) }
+        }
+    }
+    val available = state as? UpdateState.Available
+    if (dialogVisible && available != null) {
+        UpdateDialog(available.release, onDownload = controller::download, onDismiss = controller::dismissDialog)
+    }
+}
+
+@get:StringRes
+private val UpdateEvent.message: Int
+    get() = when (this) {
+        UpdateEvent.UpToDate -> R.string.update_up_to_date
+        UpdateEvent.CheckFailed -> R.string.update_check_failed
+        UpdateEvent.DownloadFailed -> R.string.update_download_failed
+        UpdateEvent.InstallNeedsPermission -> R.string.update_install_needs_permission
+        UpdateEvent.InstallFailed -> R.string.update_install_failed
+    }
 
 private fun NavHostController.openReader() = navigate(READER_ROUTE) { launchSingleTop = true }
 

@@ -2,6 +2,13 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.3.0] - 2026-11-12
+
+### Added
+
+- Kiểm tra cập nhật: app tự tìm bản mới trên GitHub khi mở (tắt được), hoặc bấm **Cài đặt → Cập nhật → Kiểm tra cập nhật**.
+- Tải APK bản mới ngay trong app, có thanh tiến độ chạy nền và nút Huỷ; tải xong bấm **Cài đặt** để mở trình cài đặt của Android.
+
 ## [0.2.0] - 2026-11-12
 
 ### Added

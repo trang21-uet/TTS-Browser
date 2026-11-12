@@ -101,6 +101,11 @@ class SettingsRepository(context: Context) {
 
     suspend fun markBackgroundGuideSeen() = edit { it[BACKGROUND_GUIDE_SEEN] = true }
 
+    /** Whether the app looks for a new version when it starts. On by default. */
+    val autoUpdateCheck: Flow<Boolean> = preferences.map { it[AUTO_UPDATE_CHECK] ?: true }.distinctUntilChanged()
+
+    suspend fun setAutoUpdateCheck(enabled: Boolean) = edit { it[AUTO_UPDATE_CHECK] = enabled }
+
     val readerSettings: Flow<ReaderSettings> = preferences
         .map { prefs ->
             ReaderSettings(
@@ -139,6 +144,7 @@ class SettingsRepository(context: Context) {
 
         val FONT_SIZE = intPreferencesKey("fontSize")
         val BACKGROUND_GUIDE_SEEN = booleanPreferencesKey("backgroundGuideSeen")
-        val READER_THEME = stringPreferencesKey("readerTheme")
+        val AUTO_UPDATE_CHECK = booleanPreferencesKey("autoUpdateCheck")
+        val READER_THEME =stringPreferencesKey("readerTheme")
     }
 }

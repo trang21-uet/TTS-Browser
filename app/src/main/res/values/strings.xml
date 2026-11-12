@@ -115,4 +115,30 @@
     <string name="background_app_settings">Mở thông tin ứng dụng</string>
     <string name="background_guide_hint">Tên và vị trí menu có thể khác theo phiên bản máy. Các lựa chọn này có thể tăng tiêu thụ pin. App không tự bật quyền; bạn vẫn có thể nghe ngay và điều chỉnh sau.</string>
     <string name="background_guide_close">Đã hiểu</string>
+
+    <string name="update_section_title">Cập nhật</string>
+    <string name="update_current_version">Phiên bản đang dùng: %1$s</string>
+    <string name="update_auto_check">Tự động kiểm tra khi mở app</string>
+    <string name="update_action_check">Kiểm tra cập nhật</string>
+    <string name="update_action_checking">Đang kiểm tra…</string>
+    <string name="update_action_available">Có bản mới %1$s · Xem</string>
+    <string name="update_action_downloading">Đang tải bản %1$s…</string>
+    <string name="update_action_install">Cài đặt bản %1$s</string>
+    <string name="update_dialog_title">Đã có phiên bản mới</string>
+    <string name="update_dialog_version">Phiên bản %1$s</string>
+    <string name="update_dialog_version_size">Phiên bản %1$s · %2$.1f MB</string>
+    <string name="update_dialog_later">Để sau</string>
+    <string name="update_dialog_download">Tải xuống</string>
+    <string name="update_dialog_open_page">Mở trang tải</string>
+    <string name="update_banner_downloading">Đang tải bản %1$s… %2$d%%</string>
+    <string name="update_banner_downloading_unknown">Đang tải bản %1$s…</string>
+    <string name="update_banner_ready">Đã tải xong bản %1$s</string>
+    <string name="update_banner_cancel">Huỷ</string>
+    <string name="update_banner_install">Cài đặt</string>
+    <string name="update_banner_hide">Ẩn</string>
+    <string name="update_up_to_date">Bạn đang dùng phiên bản mới nhất.</string>
+    <string name="update_check_failed">Không kiểm tra được cập nhật. Hãy kiểm tra kết nối và thử lại.</string>
+    <string name="update_download_failed">Tải xuống thất bại. Hãy kiểm tra kết nối và thử lại.</string>
+    <string name="update_install_needs_permission">Hãy cho phép TTS Browser cài ứng dụng, quay lại rồi bấm Cài đặt.</string>
+    <string name="update_install_failed">Không mở được trình cài đặt. Bạn có thể tải bản mới từ trang phát hành trên GitHub.</string>
 </resources>

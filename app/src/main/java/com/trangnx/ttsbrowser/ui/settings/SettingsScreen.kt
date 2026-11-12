@@ -53,6 +53,8 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val saving by viewModel.saving.collectAsStateWithLifecycle()
+    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val autoUpdateCheck by viewModel.autoUpdateCheck.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val saveError = stringResource(R.string.settings_save_error)
     LaunchedEffect(viewModel, saveError) {
@@ -70,6 +72,12 @@ fun SettingsScreen(
                 onRate = viewModel::setRate, onPitch = viewModel::setPitch,
                 onBackgroundGuide = onBackgroundGuide,
                 onSystemVoiceSettingsClosed = onSystemVoiceSettingsClosed,
+                update = {
+                    UpdateSettingsSection(
+                        viewModel.installedVersion, updateState, autoUpdateCheck, !saving,
+                        viewModel::setAutoUpdateCheck, viewModel::onUpdateAction,
+                    )
+                },
                 modifier = Modifier.padding(padding),
             )
         }
@@ -86,6 +94,7 @@ private fun SpeechSettingsContent(
     onPitch: (Float) -> Unit,
     onBackgroundGuide: () -> Unit,
     onSystemVoiceSettingsClosed: () -> Unit,
+    update: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -134,6 +143,8 @@ private fun SpeechSettingsContent(
         }
         HorizontalDivider()
         TextButton(onClick = onBackgroundGuide) { Text(stringResource(R.string.background_guide_title)) }
+        HorizontalDivider()
+        update()
     }
 }
 

@@ -29,6 +29,15 @@ Chạy lại `assembleRelease`; kết quả là `app-release.apk`. Không truy�
 
 Quy trình ra bản mới (quy tắc chọn MAJOR/MINOR/PATCH nằm trong [CLAUDE.md](../CLAUDE.md)): trong cùng commit thay đổi code, tăng `versionName` (SemVer) và `versionCode` (+1) trong `app/build.gradle.kts`, thêm mục `## [x.y.z] - YYYY-MM-DD` vào `docs/project-changelog.md`, rồi push lên `main`. Commit chỉ đổi tài liệu thì không tăng version nên không tạo release. Gỡ bản debug trước khi cài bản release vì hai bản ký khác key.
 
+## Cập nhật trong app
+
+App tự đọc GitHub release mới nhất của repo công khai `trang21-uet/TTS-Browser` (`/releases/latest`, không gửi thông tin người dùng) và so `tag_name` (`v0.3.0`) với `versionName` đang chạy. Có bản mới thì hiện hộp thoại kèm ghi chú (mục changelog), bấm **Tải xuống** để tải APK nền vào `cacheDir/updates` (kiểm tra đủ dung lượng theo `size` của asset), tải xong bấm **Cài đặt** để mở trình cài đặt của Android qua `FileProvider`.
+
+- Kiểm tra tự động khi mở app (bật mặc định) hoặc thủ công ở **Cài đặt → Cập nhật**.
+- Lần cài đầu cần cấp quyền "Cài ứng dụng không rõ nguồn" cho TTS Browser; app chỉ mở trang quyền, không tự bật.
+- Android chỉ cho cài đè khi cùng key ký, nên bản debug và bản release không cập nhật chéo được. Release phải có asset `.apk` và tag dạng `vX.Y.Z` (workflow `release-apk.yml` đã làm vậy).
+- Mã nguồn: `app/src/main/java/com/trangnx/ttsbrowser/update/`.
+
 ## Nghe nền / HyperOS
 
 Hướng dẫn xuất hiện lần đầu và có thể mở lại trong **Cài đặt → Nghe khi tắt màn hình**. App chỉ mở các màn hình hệ thống khi người dùng bấm nút. Có thể đóng hướng dẫn để nghe ngay.
