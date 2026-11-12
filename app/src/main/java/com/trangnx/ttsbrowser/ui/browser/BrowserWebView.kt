@@ -22,7 +22,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import com.trangnx.ttsbrowser.extraction.applyCookieDefaults
 import com.trangnx.ttsbrowser.extraction.applyPageDefaults
+import com.trangnx.ttsbrowser.extraction.flushPageCookies
 
 /** Page events forwarded from the WebView clients. */
 interface BrowserPageListener {
@@ -55,7 +57,10 @@ fun rememberBrowserWebView(listener: BrowserPageListener): WebView {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> webView.onResume()
-                Lifecycle.Event.ON_PAUSE -> webView.onPause()
+                Lifecycle.Event.ON_PAUSE -> {
+                    webView.onPause()
+                    flushPageCookies()
+                }
                 else -> Unit
             }
         }
@@ -73,6 +78,7 @@ fun rememberBrowserWebView(listener: BrowserPageListener): WebView {
 private fun createBrowserWebView(context: Context, listener: BrowserPageListener, onRenderGone: () -> Unit): WebView =
     WebView(context).apply {
         settings.applyPageDefaults()
+        applyCookieDefaults()
         settings.apply {
             loadWithOverviewMode = true
             useWideViewPort = true
@@ -114,6 +120,7 @@ private class BrowserWebViewClient(
     }
 
     override fun onPageFinished(view: WebView, url: String?) {
+        flushPageCookies()
         if (url != null) listener.onPageFinished(url)
     }
 

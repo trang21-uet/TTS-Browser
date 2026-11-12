@@ -31,6 +31,7 @@ class HeadlessPageLoader(context: Context, private val extractor: ReadabilityExt
         var settle: Job? = null
         try {
             webView.settings.applyPageDefaults()
+            webView.applyCookieDefaults()
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                     request.url.scheme?.lowercase().let { it != "http" && it != "https" }
@@ -62,6 +63,7 @@ class HeadlessPageLoader(context: Context, private val extractor: ReadabilityExt
             }
         } finally {
             settle?.cancel()
+            flushPageCookies() // the site may have renewed the session cookie
             webView.stopLoading()
             webView.destroy()
         }

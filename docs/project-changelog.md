@@ -2,6 +2,12 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.3.1] - 2026-11-12
+
+### Fixed
+
+- Giữ đăng nhập của trang truyện: bật cookie bên thứ ba cho trình duyệt và trang tải ngầm, và ghi cookie xuống đĩa ngay sau mỗi trang, khi app tạm dừng và sau khi tải chương.
+
 ## [0.3.0] - 2026-11-12
 
 ### Added
