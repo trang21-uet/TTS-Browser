@@ -34,7 +34,7 @@ app/src/main/java/com/trangnx/ttsbrowser/
 │   ├── FallbackTtsEngine.kt  Edge lỗi → hệ thống, đọc lại câu hiện tại
 │   ├── system/               SystemTtsEngine, UtteranceId
 │   └── edge/                 EdgeTtsEngine, EdgeTtsClient (WebSocket), EdgeProtocol, EdgeTokenGenerator, AudioMemoryCache
-├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer, ProgressTracker, NextChapterLoader
+├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer, ProgressTracker, AdjacentChapterLoader
 ├── data/
 │   ├── db/            AppDatabase, entities (Book, Progress, History, Bookmark, SiteRule), DAOs
 │   ├── settings/      SettingsRepository (DataStore: cỡ chữ, nền reader, engine/giọng, tốc độ/cao độ riêng mỗi engine)
@@ -88,7 +88,7 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 - `SpeechDriver`: tạo engine khi phát lần đầu (state BUFFERING, init timeout 15s), giải phóng khi stop/lỗi/hết chương; lỗi 1 câu bỏ qua, 3 lỗi liên tiếp hoặc 90s không callback → `playerError`.
 - `PlaybackConnection.release()` khi task bị gỡ (`onTaskRemoved`) để service dừng được.
 - Audio focus (`AudioFocusHandler`, pause khi bị duck), mất focus tạm → suppression `TRANSIENT_AUDIO_FOCUS_LOSS`; `BecomingNoisyReceiver` → pause.
-- Phase 6: nút "Chương sau" trên thông báo (custom session command, `setMediaButtonPreferences`, chỉ khi chương có `nextUrl`) → `NextChapterLoader`.
+- Phase 6: nút trước/sau trên thông báo, màn hình khoá, tai nghe chuyển chương (`ChapterSkippingPlayer`, ForwardingPlayer của session; nút tua câu trong app seek theo index) → `AdjacentChapterLoader`.
 - Phase 7: `configureSpeech(rate, pitch, replaceEngine)` áp cài đặt ngay; đổi nguồn/giọng release engine cũ rồi tiếp tục từ câu hiện tại, giữ ý định play/pause. `setSpeechVolume` qua `SpeechDriver` để fade Edge mà không đổi âm lượng hệ thống.
 
 ### Reader UI — Phase 5
@@ -111,14 +111,14 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 
 ### HeadlessPageLoader — Phase 6
 - WebView không gắn vào UI (tạo bằng application context, hủy sau khi xong): tải URL, chờ `onPageFinished` rồi 500ms không có lần tải nào nữa (redirect, trang chờ Cloudflare), rồi chạy `ReadabilityExtractor` như tab trình duyệt (cùng site_rule, cùng cookie). Timeout tải 15s; lỗi tải / timeout → `Reason.LoadFailed`.
-- Dùng bởi `NextChapterLoader` (nút "Chương sau" trên thông báo → `load` + `playFrom(0)`, một lần một lúc) và `LibraryViewModel` (mở truyện đã lưu).
+- Dùng bởi `AdjacentChapterLoader` (chương trước/sau từ media player → `load` + `playFrom(0)`, một lần một lúc) và `LibraryViewModel` (mở truyện đã lưu).
 - Cấu hình WebView chung (`PageWebViewSettings`): JS + DOM storage bật, tắt truy cập file/content; chặn scheme khác http/https.
 
 ### Thư viện & tiến độ — Phase 6
 - Không lưu nội dung chương: mở lại truyện = tải lại `progress.chapterUrl`, đặt câu theo `resumeIndex(sentenceIndex, charOffset)` (khớp `start` thì giữ chỉ số, không thì câu chứa `charOffset`), nạp vào player và pause. Chương đang nằm trong player thì giữ vị trí sống.
 - Chương thuộc truyện nào = truyện có `progress.chapterUrl` ∈ {url, prevUrl, nextUrl} của chương (`LibraryRepository.bookOf`, Flow Room) → đọc tiếp chương liền kề vẫn thuộc cùng truyện, không cần trạng thái "truyện đang đọc". "Lưu truyện" trùng (host, tên) thì cập nhật truyện cũ.
 - `ProgressTracker` (app scope, khởi động cùng `AppContainer`): ghi khi truyện, chương đang nạp và chỉ số câu cùng một chương; tối đa 1 lần/2s, ngay khi pause/hết chương, và khi `PlaybackService` bị gỡ/hủy. `PlaybackConnection.load` đặt `loaded` trước khi đổi hàng đợi để chỉ số câu của chương mới không bị gán cho truyện của chương cũ.
-- `SleepTimer` (app scope, `elapsedRealtime`, kiểm tra mỗi 15s): 15/30/45/60 phút → pause player; "hết chương" → gỡ khi chương đọc xong (player đã tự dừng ở cuối chương). Phase 7 giảm âm lượng Edge tuyến tính trong 15 giây cuối, kiểm tra mỗi giây; khi hủy hoặc hết giờ khôi phục volume 1.0 (pause trước khi khôi phục). System không hỗ trợ thay đổi âm lượng các câu đã xếp hàng nên giữ hành vi cũ.
+- `SleepTimer` (app scope, `elapsedRealtime`, kiểm tra mỗi 15s): 15/30/45/60 phút → pause player; "hết chương" → gỡ khi chương đọc xong và chặn tự chuyển chương (`onChapterEnded()` trả true). Không có timer này, `AppContainer` gọi `AdjacentChapterLoader.openNext` khi player kết thúc chương: tự đọc tiếp chương sau, chương cuối thì dừng. Phase 7 giảm âm lượng Edge tuyến tính trong 15 giây cuối, kiểm tra mỗi giây; khi hủy hoặc hết giờ khôi phục volume 1.0 (pause trước khi khôi phục). System không hỗ trợ thay đổi âm lượng các câu đã xếp hàng nên giữ hành vi cũ.
 
 ## 5. Dữ liệu (Room)
 

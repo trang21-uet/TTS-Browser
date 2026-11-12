@@ -29,7 +29,10 @@ import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
 import com.trangnx.ttsbrowser.ui.player.PlayPauseButton
 
-/** Bottom bar of the reader: player error, previous sentence, play/pause, next sentence, position. */
+/**
+ * Bottom bar of the reader: player error, then previous sentence (outer), previous chapter,
+ * play/pause, next chapter, next sentence (outer), and the sentence position.
+ */
 @Composable
 fun ReaderControls(
     state: PlaybackUiState,
@@ -77,26 +80,24 @@ fun ReaderControls(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                OutlinedIconButton(
+                OutlinedIconButton(onClick = onPrevious, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.AutoMirrored.Outlined.NavigateBefore, stringResource(R.string.player_previous))
+                }
+                IconButton(
                     onClick = { prevChapterUrl?.let(onOpenChapter) },
                     enabled = !openingChapter && prevChapterUrl != null,
-                    modifier = Modifier.size(48.dp),
                 ) {
-                    Icon(Icons.AutoMirrored.Outlined.NavigateBefore, stringResource(R.string.extract_prev))
-                }
-                IconButton(onClick = onPrevious) {
-                    Icon(Icons.Filled.SkipPrevious, stringResource(R.string.player_previous))
+                    Icon(Icons.Filled.SkipPrevious, stringResource(R.string.extract_prev))
                 }
                 PlayPauseButton(state, onTogglePlay, filled = true)
-                IconButton(onClick = onNext) {
-                    Icon(Icons.Filled.SkipNext, stringResource(R.string.player_next))
-                }
-                OutlinedIconButton(
+                IconButton(
                     onClick = { nextChapterUrl?.let(onOpenChapter) },
                     enabled = !openingChapter && nextChapterUrl != null,
-                    modifier = Modifier.size(48.dp),
                 ) {
-                    Icon(Icons.AutoMirrored.Outlined.NavigateNext, stringResource(R.string.extract_next))
+                    Icon(Icons.Filled.SkipNext, stringResource(R.string.extract_next))
+                }
+                OutlinedIconButton(onClick = onNext, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.AutoMirrored.Outlined.NavigateNext, stringResource(R.string.player_next))
                 }
             }
             Text(

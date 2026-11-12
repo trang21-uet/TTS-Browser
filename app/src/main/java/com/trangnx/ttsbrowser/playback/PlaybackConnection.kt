@@ -71,9 +71,15 @@ class PlaybackConnection(context: Context, private val player: TtsPlayer) {
         it.play()
     }
 
-    fun previousSentence() = withController(retry = true) { it.seekToPreviousMediaItem() }
+    // By index, not seekToPrevious/NextMediaItem: the session maps those to chapter skipping.
+    fun previousSentence() = withController(retry = true) { seekSentence(it, -1) }
 
-    fun nextSentence() = withController(retry = true) { it.seekToNextMediaItem() }
+    fun nextSentence() = withController(retry = true) { seekSentence(it, 1) }
+
+    private fun seekSentence(controller: MediaController, delta: Int) {
+        val target = controller.currentMediaItemIndex + delta
+        if (target in 0 until controller.mediaItemCount) controller.seekTo(target, 0L)
+    }
 
     fun release() {
         controllerFuture?.let(MediaController::releaseFuture)

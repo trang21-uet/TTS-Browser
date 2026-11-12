@@ -62,11 +62,13 @@ class SleepTimer(
     }
 
     /**
-     * The chapter was read to the end: playback has stopped by itself, so an end-of-chapter timer is
-     * used up. (When chapters follow each other automatically, this is where it will stop them.)
+     * The chapter was read to the end. An end-of-chapter timer is used up and returns true: reading
+     * must not go on to the next chapter. Otherwise false.
      */
-    fun onChapterEnded() {
-        if (_state.value == SleepTimerState.EndOfChapter) cancel()
+    fun onChapterEnded(): Boolean {
+        if (_state.value != SleepTimerState.EndOfChapter) return false
+        cancel()
+        return true
     }
 
     private fun expire() {

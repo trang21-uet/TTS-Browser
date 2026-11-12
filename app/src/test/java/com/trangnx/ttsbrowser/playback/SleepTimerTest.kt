@@ -70,7 +70,7 @@ class SleepTimerTest {
         timer.startEndOfChapter()
         assertEquals(SleepTimerState.EndOfChapter, timer.state.value)
 
-        timer.onChapterEnded()
+        assertTrue(timer.onChapterEnded())
         assertEquals(SleepTimerState.Off, timer.state.value)
         assertEquals(0, expired.get())
     }
@@ -78,8 +78,13 @@ class SleepTimerTest {
     @Test
     fun chapterEndLeavesACountdownRunning() {
         timer.startMinutes(15)
-        timer.onChapterEnded()
+        assertFalse(timer.onChapterEnded())
         assertTrue(timer.state.value is SleepTimerState.Countdown)
+    }
+
+    @Test
+    fun chapterEndWithoutTimerLetsReadingGoOn() {
+        assertFalse(timer.onChapterEnded())
     }
 
     @Test

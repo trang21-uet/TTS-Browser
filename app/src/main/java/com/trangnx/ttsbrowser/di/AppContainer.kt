@@ -17,9 +17,10 @@ import com.trangnx.ttsbrowser.data.repo.SiteRuleRepository
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.ElementPicker
 import com.trangnx.ttsbrowser.extraction.ExtractionScripts
+import com.trangnx.ttsbrowser.extraction.ExtractionResult
 import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
 import com.trangnx.ttsbrowser.extraction.ReadabilityExtractor
-import com.trangnx.ttsbrowser.playback.NextChapterLoader
+import com.trangnx.ttsbrowser.playback.AdjacentChapterLoader
 import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import com.trangnx.ttsbrowser.playback.ProgressTracker
 import com.trangnx.ttsbrowser.playback.SleepTimer
@@ -28,6 +29,7 @@ import com.trangnx.ttsbrowser.tts.system.SystemTtsEngine
 import com.trangnx.ttsbrowser.tts.FallbackTtsEngine
 import com.trangnx.ttsbrowser.tts.edge.EdgeTtsClient
 import com.trangnx.ttsbrowser.tts.edge.EdgeTtsEngine
+import com.trangnx.ttsbrowser.ui.browser.message
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -103,7 +105,7 @@ class AppContainer(context: Context) {
 
     val headlessPageLoader: HeadlessPageLoader by lazy { HeadlessPageLoader(appContext, readabilityExtractor) }
 
-    val nextChapterLoader: NextChapterLoader by lazy { NextChapterLoader(appScope, headlessPageLoader, playbackConnection) }
+    val adjacentChapterLoader: AdjacentChapterLoader by lazy { AdjacentChapterLoader(appScope, headlessPageLoader, playbackConnection) }
 
     val progressTracker: ProgressTracker by lazy { ProgressTracker(appScope, libraryRepository, playbackConnection) }
 
@@ -115,7 +117,15 @@ class AppContainer(context: Context) {
         // Running whenever the process is, with or without UI (the service can start alone).
         progressTracker.start()
         appScope.launch {
-            playbackConnection.state.map { it.isEnded }.distinctUntilChanged().filter { it }.collect { sleepTimer.onChapterEnded() }
+            playbackConnection.state.map { it.isEnded }.distinctUntilChanged().filter { it }.collect {
+                // Read on to the next chapter, unless an end-of-chapter sleep timer says stop.
+                if (!sleepTimer.onChapterEnded()) adjacentChapterLoader.openNext(::reportAutoAdvanceFailure)
+            }
         }
+    }
+
+    /** [reason] null: the chapter was the last one, nothing to report. */
+    private fun reportAutoAdvanceFailure(reason: ExtractionResult.Reason?) {
+        reason?.let { Toast.makeText(appContext, it.message, Toast.LENGTH_LONG).show() }
     }
 }

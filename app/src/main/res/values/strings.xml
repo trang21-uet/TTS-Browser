@@ -53,6 +53,7 @@
     <string name="playback_error_connect">Không kết nối được dịch vụ phát</string>
 
     <string name="next_chapter_none">Chương này không có chương sau</string>
+    <string name="previous_chapter_none">Chương này không có chương trước</string>
 
     <string name="player_play">Phát</string>
     <string name="player_pause">Tạm dừng</string>
