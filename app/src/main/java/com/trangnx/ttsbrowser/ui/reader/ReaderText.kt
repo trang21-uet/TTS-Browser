@@ -4,7 +4,9 @@ import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,16 +38,20 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 
-private val TEXT_PADDING_H = 20.dp
-private val PARAGRAPH_PADDING_V = 6.dp
+private val TEXT_PADDING_H = 24.dp
+private val PARAGRAPH_PADDING_V = 8.dp
+/** Lines longer than ~70 characters tire the eye, so wide screens get a centered column. */
+private val MAX_TEXT_WIDTH = 680.dp
 private const val HEADER_ITEMS = 1
-private const val LINE_HEIGHT_RATIO = 1.6f
+private const val LINE_HEIGHT_RATIO = 1.7f
 private const val MAX_LAYOUT_WAIT_FRAMES = 3
 
 /**
@@ -57,6 +63,7 @@ fun ReaderText(
     loaded: LoadedChapter,
     currentIndex: Int,
     fontSizeSp: Int,
+    fontFamily: FontFamily?,
     note: String?,
     onSentenceClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -68,7 +75,7 @@ fun ReaderText(
     LaunchedEffect(chapter.url) { listState.scrollToItem(0) }
     // Not state: read by the scroll effect only, written during layout. A new font size starts an
     // empty map, so the effect never measures with layouts of the old size.
-    val layouts = remember(loaded, fontSizeSp) { HashMap<Int, TextLayoutResult>() }
+    val layouts = remember(loaded, fontSizeSp, fontFamily) { HashMap<Int, TextLayoutResult>() }
     var follow by remember(loaded) { mutableStateOf(true) }
     var animate by remember(loaded) { mutableStateOf(false) }
     val paddingPx = with(LocalDensity.current) { PARAGRAPH_PADDING_V.roundToPx() }
@@ -76,13 +83,15 @@ fun ReaderText(
     val style = MaterialTheme.typography.bodyLarge.copy(
         fontSize = fontSizeSp.sp,
         lineHeight = (fontSizeSp * LINE_HEIGHT_RATIO).sp,
+        fontFamily = fontFamily ?: MaterialTheme.typography.bodyLarge.fontFamily,
+        lineBreak = LineBreak.Paragraph,
     )
     val highlight = MaterialTheme.colorScheme.primaryContainer
 
     LaunchedEffect(listState) {
         listState.interactionSource.interactions.collect { if (it is DragInteraction.Start) follow = false }
     }
-    LaunchedEffect(loaded, current, follow, fontSizeSp) {
+    LaunchedEffect(loaded, current, follow, fontSizeSp, fontFamily) {
         if (!follow || current == null) return@LaunchedEffect
         val paragraph = current.paragraphIndex
         val span = spans.getOrNull(paragraph)?.firstOrNull { it.index == current.index } ?: return@LaunchedEffect
@@ -90,11 +99,18 @@ fun ReaderText(
         animate = true // first reveal (opening the reader) jumps, later ones scroll
     }
 
-    Box(modifier.fillMaxSize()) {
-        LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 88.dp),
+            modifier = Modifier.fillMaxHeight().widthIn(max = MAX_TEXT_WIDTH),
+        ) {
             item {
                 Column(Modifier.padding(horizontal = TEXT_PADDING_H, vertical = 12.dp)) {
-                    Text(chapter.title, style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        chapter.title,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontFamily = style.fontFamily, lineBreak = LineBreak.Heading),
+                    )
                     if (note != null) {
                         Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }

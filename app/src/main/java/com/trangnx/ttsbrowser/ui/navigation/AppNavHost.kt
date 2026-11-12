@@ -1,7 +1,17 @@
 package com.trangnx.ttsbrowser.ui.navigation
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -50,6 +60,7 @@ import com.trangnx.ttsbrowser.ui.browser.ExtractionViewModel
 import com.trangnx.ttsbrowser.ui.browser.PageRequest
 import com.trangnx.ttsbrowser.ui.browser.pageOf
 import com.trangnx.ttsbrowser.ui.browser.rememberBrowserWebView
+import com.trangnx.ttsbrowser.ui.common.rememberBarsVisibility
 import com.trangnx.ttsbrowser.ui.library.LibraryScreen
 import com.trangnx.ttsbrowser.ui.library.LibraryViewModel
 import com.trangnx.ttsbrowser.ui.player.MiniPlayerBar
@@ -107,6 +118,13 @@ fun AppNavHost() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
 
+    // Browser tab only: scrolling the page down tucks away the address bar and the bottom bars.
+    val autoHide by container.settingsRepository.autoHideBars.collectAsStateWithLifecycle(initialValue = true)
+    val bars = rememberBarsVisibility()
+    val onBrowserTab = currentDestination?.route == TopLevelRoute.Browser.route
+    val hideBars = autoHide && bars.hidden && onBrowserTab
+    LaunchedEffect(currentDestination?.route) { bars.show() }
+
     val readerActions = remember(navController, browserWebView, extractionViewModel) {
         // Back to the browser tab (the start destination), loading [url] unless the page shows it already.
         // Switching tabs like the tab bar keeps a Library/Settings tab's saved state.
@@ -151,12 +169,23 @@ fun AppNavHost() {
         bottomBar = {
             if (currentDestination?.route != READER_ROUTE) {
                 Column {
-                    UpdateBanner(container.updateController)
-                    MiniPlayer(readerViewModel) {
-                        readerViewModel.showLoaded()
-                        navController.openReader()
+                    AnimatedVisibility(visible = !hideBars, enter = expandVertically(), exit = shrinkVertically()) {
+                        Column {
+                            UpdateBanner(container.updateController)
+                            MiniPlayer(readerViewModel) {
+                                readerViewModel.showLoaded()
+                                navController.openReader()
+                            }
+                            TabBar(navController, currentDestination)
+                        }
                     }
-                    TabBar(navController, currentDestination)
+                    // The tab bar leaves the navigation bar area to this strip, so it stays when the bars hide.
+                    Spacer(
+                        Modifier
+                            .fillMaxWidth()
+                            .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                            .background(NavigationBarDefaults.containerColor),
+                    )
                 }
             }
         },
@@ -164,7 +193,10 @@ fun AppNavHost() {
         // Tabs take the scaffold padding; the reader handles insets itself (its colors reach the status bar).
         NavHost(navController = navController, startDestination = TopLevelRoute.Browser.route) {
             composable(TopLevelRoute.Browser.route) {
-                BrowserScreen(browserViewModel, extractionViewModel, browserWebView, Modifier.padding(innerPadding))
+                BrowserScreen(
+                    browserViewModel, extractionViewModel, browserWebView, bars, hideBars,
+                    Modifier.padding(innerPadding),
+                )
             }
             composable(TopLevelRoute.Library.route) { Box(Modifier.padding(innerPadding)) { LibraryScreen(libraryViewModel) } }
             composable(TopLevelRoute.Settings.route) {
@@ -231,7 +263,7 @@ private fun MiniPlayer(viewModel: ReaderViewModel, onOpen: () -> Unit) {
 
 @Composable
 private fun TabBar(navController: NavHostController, currentDestination: NavDestination?) {
-    NavigationBar {
+    NavigationBar(windowInsets = WindowInsets(0, 0, 0, 0)) {
         TopLevelRoute.entries.forEach { item ->
             NavigationBarItem(
                 selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,

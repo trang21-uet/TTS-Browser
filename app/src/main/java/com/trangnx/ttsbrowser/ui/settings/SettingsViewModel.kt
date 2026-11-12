@@ -29,6 +29,8 @@ class SettingsViewModel(
 
     val autoUpdateCheck: StateFlow<Boolean> = repository.autoUpdateCheck
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
+    val autoHideBars: StateFlow<Boolean> = repository.autoHideBars
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
     val updateState = updates.state
     val installedVersion = updates.installedVersion
 
@@ -42,6 +44,7 @@ class SettingsViewModel(
     fun setRate(rate: Float) = save { repository.setRate(rate) }
     fun setPitch(pitch: Float) = save { repository.setPitch(pitch) }
     fun setAutoUpdateCheck(enabled: Boolean) = save { repository.setAutoUpdateCheck(enabled) }
+    fun setAutoHideBars(enabled: Boolean) = save { repository.setAutoHideBars(enabled) }
     fun onUpdateAction() = updates.primaryAction()
 
     private fun save(action: suspend () -> Unit) {

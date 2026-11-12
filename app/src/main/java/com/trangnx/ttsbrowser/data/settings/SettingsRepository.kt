@@ -21,7 +21,13 @@ import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
 
 /** Reader background; [System] follows the app's light/dark theme. */
-enum class ReaderTheme { System, Light, Dark, Sepia }
+enum class ReaderTheme { System, Light, Dark, Sepia, Mint, Black }
+
+/** Reader text color; [Auto] is the contrast color of the chosen background. */
+enum class ReaderTextColor { Auto, Black, Charcoal, Brown, Gray, Cream, White }
+
+/** Reader typeface: [Default] is the system font, [Serif]/[Mono] the system families, the rest are bundled. */
+enum class ReaderFont { Default, BeVietnamPro, Lora, Serif, Mono }
 
 enum class SpeechEngine { System, Edge }
 
@@ -69,6 +75,8 @@ internal object SpeechPreferences {
 data class ReaderSettings(
     val fontSizeSp: Int = DEFAULT_FONT_SIZE_SP,
     val theme: ReaderTheme = ReaderTheme.System,
+    val textColor: ReaderTextColor = ReaderTextColor.Auto,
+    val font: ReaderFont = ReaderFont.Default,
     /** Speech rate, 1.0 = normal. */
     val rate: Float = 1f,
 ) {
@@ -114,6 +122,8 @@ class SettingsRepository(context: Context) {
             ReaderSettings(
                 fontSizeSp = clampFontSize(prefs[FONT_SIZE] ?: ReaderSettings.DEFAULT_FONT_SIZE_SP),
                 theme = ReaderTheme.entries.firstOrNull { it.name == prefs[READER_THEME] } ?: ReaderTheme.System,
+                textColor = ReaderTextColor.entries.firstOrNull { it.name == prefs[READER_TEXT_COLOR] } ?: ReaderTextColor.Auto,
+                font = ReaderFont.entries.firstOrNull { it.name == prefs[READER_FONT] } ?: ReaderFont.Default,
                 rate = SpeechPreferences.read(prefs).rate,
             )
         }
@@ -128,6 +138,15 @@ class SettingsRepository(context: Context) {
     suspend fun setFontSize(sp: Int) = edit { it[FONT_SIZE] = clampFontSize(sp) }
 
     suspend fun setReaderTheme(theme: ReaderTheme) = edit { it[READER_THEME] = theme.name }
+
+    suspend fun setReaderTextColor(color: ReaderTextColor) = edit { it[READER_TEXT_COLOR] = color.name }
+
+    suspend fun setReaderFont(font: ReaderFont) = edit { it[READER_FONT] = font.name }
+
+    /** Whether the top/bottom bars slide away while scrolling down (browser page and reader). On by default. */
+    val autoHideBars: Flow<Boolean> = preferences.map { it[AUTO_HIDE_BARS] ?: true }.distinctUntilChanged()
+
+    suspend fun setAutoHideBars(enabled: Boolean) = edit { it[AUTO_HIDE_BARS] = enabled }
 
     suspend fun setEngine(engine: SpeechEngine) = edit { it[SpeechPreferences.ENGINE] = engine.name }
 
@@ -154,7 +173,10 @@ class SettingsRepository(context: Context) {
         val FONT_SIZE = intPreferencesKey("fontSize")
         val BACKGROUND_GUIDE_SEEN = booleanPreferencesKey("backgroundGuideSeen")
         val AUTO_UPDATE_CHECK = booleanPreferencesKey("autoUpdateCheck")
-        val READER_THEME =stringPreferencesKey("readerTheme")
+        val READER_THEME = stringPreferencesKey("readerTheme")
+        val READER_TEXT_COLOR = stringPreferencesKey("readerTextColor")
+        val READER_FONT = stringPreferencesKey("readerFont")
+        val AUTO_HIDE_BARS = booleanPreferencesKey("autoHideBars")
         val LIBRARY_LAYOUT = stringPreferencesKey("libraryLayout")
     }
 }

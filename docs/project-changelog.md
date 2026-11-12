@@ -2,6 +2,17 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.5.0] - 2026-11-13
+
+### Added
+
+- Tùy chọn hiển thị cho màn hình đọc (nút **Hiển thị**): chọn phông chữ (mặc định, Be Vietnam Pro, Lora, Serif, Monospace), cỡ chữ, màu nền (thêm Bạc hà và Đen) và màu chữ riêng (Tự động, Đen, Than, Nâu, Xám, Kem, Trắng). Be Vietnam Pro và Lora được đóng gói theo giấy phép SIL OFL.
+- Tự ẩn thanh công cụ khi cuộn xuống, cuộn lên để hiện lại: thanh địa chỉ, mini player và thanh tab của trình duyệt; thanh tiêu đề và thanh điều khiển của màn hình đọc. Bật mặc định, tắt ở **Cài đặt → Đọc truyện**.
+
+### Changed
+
+- Màn hình đọc dễ nhìn hơn: giãn dòng 1.7, đoạn cách nhau rộng hơn, lề 24dp và cột chữ tối đa 680dp, căn giữa trên màn hình rộng.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added

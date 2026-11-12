@@ -10,6 +10,8 @@ import com.trangnx.ttsbrowser.TtsBrowserApp
 import com.trangnx.ttsbrowser.data.db.BookEntity
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
 import com.trangnx.ttsbrowser.data.settings.ReaderSettings
+import com.trangnx.ttsbrowser.data.settings.ReaderFont
+import com.trangnx.ttsbrowser.data.settings.ReaderTextColor
 import com.trangnx.ttsbrowser.data.settings.ReaderTheme
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
@@ -129,6 +131,9 @@ class ReaderViewModel(
     val settings: StateFlow<ReaderSettings?> = settingsRepository.readerSettings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    val autoHideBars: StateFlow<Boolean> = settingsRepository.autoHideBars
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
     /**
      * Shows an extracted chapter. [continuing] (previous/next chapter from the reader) while the shown
      * chapter is playing loads it right away, so reading goes on; a re-extracted loaded chapter
@@ -208,6 +213,10 @@ class ReaderViewModel(
     fun setFontSize(sp: Int) = save { it.setFontSize(sp) }
 
     fun setTheme(theme: ReaderTheme) = save { it.setReaderTheme(theme) }
+
+    fun setTextColor(color: ReaderTextColor) = save { it.setReaderTextColor(color) }
+
+    fun setFont(font: ReaderFont) = save { it.setReaderFont(font) }
 
     /** The player picks the new rate up from the settings. */
     fun setRate(rate: Float) = save { it.setRate(rate) }

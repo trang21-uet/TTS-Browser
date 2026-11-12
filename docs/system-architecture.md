@@ -23,9 +23,10 @@
 app/src/main/java/com/trangnx/ttsbrowser/
 ├── ui/
 │   ├── browser/       BrowserScreen, BrowserViewModel, BrowserWebView (WebView giữ ở AppNavHost, sống qua đổi tab), BrowserAddressBar, PageLinkList, UrlInputResolver
-│   ├── reader/        ReaderScreen, ReaderViewModel, ReaderText (highlight, chạm câu, tự cuộn), ReaderControls, ReaderDisplaySheet, ReaderColors, SentenceSpans
+│   ├── reader/        ReaderScreen, ReaderViewModel, ReaderText (highlight, chạm câu, tự cuộn), ReaderControls, ReaderDisplaySheet (phông, cỡ chữ, màu nền/chữ), ReaderColors, ReaderFonts, ReaderSwatches, SentenceSpans
+│   ├── common/        AutoHideBars (BarsVisibility: ẩn thanh khi cuộn xuống, hiện khi cuộn lên; dùng cho trình duyệt và reader)
 │   ├── library/       LibraryScreen, LibraryViewModel (mở truyện đã lưu bằng HeadlessPageLoader)
-│   ├── settings/      SettingsScreen, SettingsViewModel (nguồn giọng, hai giọng Edge, tốc độ/cao độ)
+│   ├── settings/      SettingsScreen, SettingsViewModel (tự ẩn thanh công cụ, nguồn giọng, hai giọng Edge, tốc độ/cao độ)
 │   └── player/        MiniPlayerBar, PlayPauseButton, SleepTimerSheet
 ├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, PageWebViewSettings, ElementPicker (chọn vùng thủ công), HeadlessPageLoader
 ├── text/              SentenceSegmenter, Sentence, ResumePosition (khôi phục câu theo charOffset), BookTitleSuggester
@@ -37,7 +38,7 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── playback/          PlaybackService (MediaSessionService), PlaybackConnection (MediaController, state cho UI), PlaybackUiState, TtsPlayer (SimpleBasePlayer), SpeechDriver, SentencePlaylist, AudioFocusHandler, BecomingNoisyReceiver, SleepTimer, ProgressTracker, AdjacentChapterLoader
 ├── data/
 │   ├── db/            AppDatabase, entities (Book, Progress, History, Bookmark, SiteRule), DAOs
-│   ├── settings/      SettingsRepository (DataStore: cỡ chữ, nền reader, engine/giọng, tốc độ/cao độ riêng mỗi engine)
+│   ├── settings/      SettingsRepository (DataStore: cỡ chữ, phông, nền và màu chữ reader, tự ẩn thanh, engine/giọng, tốc độ/cao độ riêng mỗi engine)
 │   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository (truyện + tiến độ)
 └── di/                AppContainer
 ```

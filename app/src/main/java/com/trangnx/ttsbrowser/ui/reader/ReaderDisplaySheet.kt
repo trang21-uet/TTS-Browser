@@ -1,15 +1,18 @@
 package com.trangnx.ttsbrowser.ui.reader
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.trangnx.ttsbrowser.R
+import com.trangnx.ttsbrowser.data.settings.ReaderFont
 import com.trangnx.ttsbrowser.data.settings.ReaderSettings
+import com.trangnx.ttsbrowser.data.settings.ReaderTextColor
 import com.trangnx.ttsbrowser.data.settings.ReaderTheme
 import com.trangnx.ttsbrowser.tts.TtsEngine
 import kotlin.math.roundToInt
@@ -31,16 +36,17 @@ import kotlin.math.roundToInt
 private const val RATE_STEP = 0.1f
 
 @get:StringRes
-private val ReaderTheme.label: Int
+private val ReaderFont.label: Int
     get() = when (this) {
-        ReaderTheme.System -> R.string.reader_theme_system
-        ReaderTheme.Light -> R.string.reader_theme_light
-        ReaderTheme.Dark -> R.string.reader_theme_dark
-        ReaderTheme.Sepia -> R.string.reader_theme_sepia
+        ReaderFont.Default -> R.string.reader_font_default
+        ReaderFont.BeVietnamPro -> R.string.reader_font_be_vietnam_pro
+        ReaderFont.Lora -> R.string.reader_font_lora
+        ReaderFont.Serif -> R.string.reader_font_serif
+        ReaderFont.Mono -> R.string.reader_font_mono
     }
 
 /**
- * Font size and background apply while sliding / on tap; the speech rate is saved when the slider
+ * Font, size and colors apply while sliding / on tap; the speech rate is saved when the slider
  * is released, since each change restarts the current sentence.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +55,8 @@ fun ReaderDisplaySheet(
     settings: ReaderSettings,
     onFontSize: (Int) -> Unit,
     onTheme: (ReaderTheme) -> Unit,
+    onTextColor: (ReaderTextColor) -> Unit,
+    onFont: (ReaderFont) -> Unit,
     onRate: (Float) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -56,8 +64,12 @@ fun ReaderDisplaySheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
         ) {
+            Label(stringResource(R.string.reader_font))
+            FontChoices(settings.font, onFont)
+
             // Local while dragging: saved values come back from DataStore late and must not move the thumb.
             var fontSize by remember { mutableFloatStateOf(settings.fontSizeSp.toFloat()) }
             var dragging by remember { mutableStateOf(false) }
@@ -79,15 +91,10 @@ fun ReaderDisplaySheet(
             )
 
             Label(stringResource(R.string.reader_background))
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                ReaderTheme.entries.forEachIndexed { index, theme ->
-                    SegmentedButton(
-                        selected = theme == settings.theme,
-                        onClick = { onTheme(theme) },
-                        shape = SegmentedButtonDefaults.itemShape(index, ReaderTheme.entries.size),
-                    ) { Text(stringResource(theme.label)) }
-                }
-            }
+            ThemeSwatches(settings.theme, onTheme)
+
+            Label(stringResource(R.string.reader_text_color))
+            TextColorSwatches(settings.textColor, onTextColor)
 
             var rate by remember(settings.rate) { mutableFloatStateOf(settings.rate) }
             Label(stringResource(R.string.reader_rate, rate))
@@ -102,7 +109,21 @@ fun ReaderDisplaySheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FontChoices(selected: ReaderFont, onSelect: (ReaderFont) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (font in ReaderFont.entries) {
+            FilterChip(
+                selected = font == selected,
+                onClick = { onSelect(font) },
+                label = { Text(stringResource(font.label), fontFamily = font.family) },
+            )
+        }
+    }
+}
+
 @Composable
 private fun Label(text: String) {
-    Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
+    Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
 }
