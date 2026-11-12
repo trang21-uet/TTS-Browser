@@ -27,7 +27,7 @@ Chạy lại `assembleRelease`; kết quả là `app-release.apk`. Không truy�
 - `release-apk.yml`: khi push lên `main` làm thay đổi `versionName`/`versionCode` trong `app/build.gradle.kts`, workflow build APK release đã ký và tạo GitHub release `v<versionName>` kèm `TTS-Browser-<versionName>.apk`. Nội dung release lấy từ mục `## [<versionName>]` trong [project-changelog.md](project-changelog.md); không có mục đó thì release chỉ ghi tên phiên bản.
 - Ký bằng 4 GitHub secret: `TTS_KEYSTORE_BASE64`, `TTS_KEYSTORE_PASSWORD`, `TTS_KEY_ALIAS`, `TTS_KEY_PASSWORD`. Bản sao keystore nằm ngoài repo, phải sao lưu.
 
-Quy trình ra bản mới: trong cùng commit thay đổi code, tăng `versionName` (SemVer) và `versionCode` (+1) trong `app/build.gradle.kts`, thêm mục `## [x.y.z]` vào `docs/project-changelog.md`, rồi push lên `main`. Commit chỉ đổi tài liệu thì không tăng version nên không tạo release. Gỡ bản debug trước khi cài bản release vì hai bản ký khác key.
+Quy trình ra bản mới (quy tắc chọn MAJOR/MINOR/PATCH nằm trong [CLAUDE.md](../CLAUDE.md)): trong cùng commit thay đổi code, tăng `versionName` (SemVer) và `versionCode` (+1) trong `app/build.gradle.kts`, thêm mục `## [x.y.z] - YYYY-MM-DD` vào `docs/project-changelog.md`, rồi push lên `main`. Commit chỉ đổi tài liệu thì không tăng version nên không tạo release. Gỡ bản debug trước khi cài bản release vì hai bản ký khác key.
 
 ## Nghe nền / HyperOS
 
