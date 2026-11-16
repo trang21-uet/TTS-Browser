@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,8 +44,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trangnx.ttsbrowser.R
 import com.trangnx.ttsbrowser.data.db.BookWithProgress
 import com.trangnx.ttsbrowser.data.settings.LibraryLayout
+import com.trangnx.ttsbrowser.download.DownloadState
 import com.trangnx.ttsbrowser.ui.browser.message
 import com.trangnx.ttsbrowser.ui.common.PlaceholderContent
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.launch
 
 /**
  * Saved stories, most recently read first, as a two-column grid of covers or as a list; a tap continues
@@ -55,7 +59,11 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
     val books by viewModel.books.collectAsStateWithLifecycle()
     val layout by viewModel.layout.collectAsStateWithLifecycle()
     val opening by viewModel.opening.collectAsStateWithLifecycle()
+    val downloadCounts by viewModel.downloadCounts.collectAsStateWithLifecycle()
+    val download by viewModel.download.collectAsStateWithLifecycle()
+    var downloadFor by remember { mutableStateOf<BookWithProgress?>(null) }
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var toDelete by remember { mutableStateOf<BookWithProgress?>(null) }
     var coverFor by remember { mutableStateOf<BookWithProgress?>(null) }
 
@@ -73,6 +81,13 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
         viewModel.coverFailed.collect { snackbar.showSnackbar(resources.getString(R.string.library_cover_failed)) }
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.download.filterIsInstance<DownloadState.Finished>().collect { finished ->
+            viewModel.clearFinishedDownload()
+            snackbar.showSnackbar(downloadResultText(resources, finished))
+        }
+    }
+
     val list = books ?: return
     val currentLayout = layout ?: return
     Box(Modifier.fillMaxSize()) {
@@ -80,11 +95,13 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
             PlaceholderContent(stringResource(R.string.library_empty))
         } else {
             Column(Modifier.fillMaxSize()) {
+                (download as? DownloadState.Running)?.let { DownloadProgressBar(it, viewModel::cancelDownload) }
                 LayoutToggle(currentLayout, viewModel::setLayout)
                 val content = BookListContent(
                     list = list,
                     opening = opening,
                     coverOf = { viewModel.coverOf(it.book) },
+                    downloadedOf = { downloadCounts[it.book.id] ?: 0 },
                     actionsOf = { item ->
                         BookActions(
                             onChangeCover = {
@@ -93,6 +110,9 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
                             },
                             onClearCover = { viewModel.clearCover(item) },
                             onDelete = { toDelete = item },
+                            onDownload = { downloadFor = item },
+                            onDeleteDownloads = { viewModel.deleteDownloads(item) }
+                                .takeIf { (downloadCounts[item.book.id] ?: 0) > 0 },
                         )
                     },
                     onOpen = viewModel::open,
@@ -101,6 +121,20 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+    }
+
+    downloadFor?.let { item ->
+        DownloadChaptersDialog(
+            item = item,
+            downloaded = downloadCounts[item.book.id] ?: 0,
+            onDismiss = { downloadFor = null },
+            onDownload = { count ->
+                downloadFor = null
+                if (!viewModel.startDownload(item, count)) {
+                    scope.launch { snackbar.showSnackbar(resources.getString(R.string.download_busy)) }
+                }
+            },
+        )
     }
 
     toDelete?.let { item ->
@@ -125,6 +159,7 @@ private class BookListContent(
     val list: List<BookWithProgress>,
     val opening: Long?,
     val coverOf: (BookWithProgress) -> java.io.File?,
+    val downloadedOf: (BookWithProgress) -> Int,
     val actionsOf: (BookWithProgress) -> BookActions,
     val onOpen: (BookWithProgress) -> Unit,
 )
@@ -151,7 +186,7 @@ private fun GridContent(content: BookListContent) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(content.list, key = { it.book.id }) { item ->
-            BookCard(item, content.coverOf(item), content.opening == item.book.id, content.actionsOf(item)) { content.onOpen(item) }
+            BookCard(item, content.coverOf(item), content.downloadedOf(item), content.opening == item.book.id, content.actionsOf(item)) { content.onOpen(item) }
         }
     }
 }
@@ -160,8 +195,9 @@ private fun GridContent(content: BookListContent) {
 private fun ListContent(content: BookListContent) {
     LazyColumn(Modifier.fillMaxSize()) {
         items(content.list, key = { it.book.id }) { item ->
-            BookRow(item, content.coverOf(item), content.opening == item.book.id, content.actionsOf(item)) { content.onOpen(item) }
+            BookRow(item, content.coverOf(item), content.downloadedOf(item), content.opening == item.book.id, content.actionsOf(item)) { content.onOpen(item) }
             HorizontalDivider()
         }
     }
 }
+

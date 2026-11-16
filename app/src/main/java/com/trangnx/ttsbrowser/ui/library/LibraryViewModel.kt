@@ -11,10 +11,13 @@ import com.trangnx.ttsbrowser.TtsBrowserApp
 import com.trangnx.ttsbrowser.data.db.BookEntity
 import com.trangnx.ttsbrowser.data.db.BookWithProgress
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
+import com.trangnx.ttsbrowser.data.repo.OfflineChapterRepository
+import com.trangnx.ttsbrowser.download.ChapterDownloader
+import com.trangnx.ttsbrowser.download.DownloadState
 import com.trangnx.ttsbrowser.data.settings.LibraryLayout
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
-import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
+import com.trangnx.ttsbrowser.extraction.ChapterLoader
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import com.trangnx.ttsbrowser.text.resumeIndex
@@ -40,10 +43,40 @@ data class ResumeRequest(val chapter: LoadedChapter, val startIndex: Int)
  */
 class LibraryViewModel(
     private val library: LibraryRepository,
-    private val loader: HeadlessPageLoader,
+    private val loader: ChapterLoader,
     private val playback: PlaybackConnection,
     private val settings: SettingsRepository,
+    private val offline: OfflineChapterRepository,
+    private val downloader: ChapterDownloader,
 ) : ViewModel() {
+
+    /** Book id → number of chapters downloaded for offline reading. */
+    val downloadCounts: StateFlow<Map<Long, Int>> = offline.counts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyMap())
+
+    val download: StateFlow<DownloadState> = downloader.state
+
+    /** Downloads [count] chapters of [item] from the chapter being read; `false` if another download runs. */
+    fun startDownload(item: BookWithProgress, count: Int): Boolean {
+        val progress = item.progress ?: return false
+        return downloader.start(item.book.id, item.book.title, progress.chapterUrl, count)
+    }
+
+    fun cancelDownload() = downloader.cancel()
+
+    fun clearFinishedDownload() = downloader.clearFinished()
+
+    fun deleteDownloads(item: BookWithProgress) {
+        // A running download of this story would store chapters again right after.
+        if ((download.value as? DownloadState.Running)?.bookId == item.book.id) downloader.cancel()
+        viewModelScope.launch {
+            try {
+                offline.deleteForBook(item.book.id)
+            } catch (_: SQLException) {
+                // Storage failure: the chapters stay downloaded.
+            }
+        }
+    }
 
     /** Null until read. */
     val books: StateFlow<List<BookWithProgress>?> = library.books
@@ -149,9 +182,11 @@ class LibraryViewModel(
                 val container = (this[APPLICATION_KEY] as TtsBrowserApp).container
                 LibraryViewModel(
                     container.libraryRepository,
-                    container.headlessPageLoader,
+                    container.chapterLoader,
                     container.playbackConnection,
                     container.settingsRepository,
+                    container.offlineChapterRepository,
+                    container.chapterDownloader,
                 )
             }
         }

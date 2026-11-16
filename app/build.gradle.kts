@@ -21,8 +21,8 @@ android {
         applicationId = "com.trangnx.ttsbrowser"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.6.2"
+        versionCode = 10
+        versionName = "0.7.0"
     }
 
     signingConfigs {

@@ -24,10 +24,10 @@ class HeadlessPageLoader(
     context: Context,
     private val extractor: ReadabilityExtractor,
     private val adBlocker: AdBlocker,
-) {
+) : ChapterLoader {
     private val appContext = context.applicationContext
 
-    suspend fun load(url: String): ExtractionResult = withContext(Dispatchers.Main) { loadAndExtract(url) }
+    override suspend fun load(url: String): ExtractionResult = withContext(Dispatchers.Main) { loadAndExtract(url) }
 
     private suspend fun loadAndExtract(url: String): ExtractionResult = coroutineScope {
         val webView = WebView(appContext)

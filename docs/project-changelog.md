@@ -2,6 +2,13 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.7.0] - 2026-11-16
+
+### Added
+
+- Tải trước chương truyện để đọc offline: trong **Thư viện**, menu ⋮ của một truyện → **Tải chương để đọc offline**, chọn số chương (10/20/50/100 hoặc tự nhập, tối đa 500) bắt đầu từ chương đang đọc. App lần lượt theo nút "Chương sau", có thanh tiến độ và nút **Dừng**; chương đã tải không tải lại.
+- Chương đã tải mở ngay không cần mạng: khi mở truyện từ Thư viện, chuyển chương trước/sau và tự đọc sang chương tiếp. Thẻ truyện hiện số chương đã tải; menu có **Xóa chương đã tải**. Xóa truyện cũng xóa các chương đã tải.
+
 ## [0.6.2] - 2026-11-13
 
 ### Changed

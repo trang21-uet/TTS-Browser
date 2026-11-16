@@ -2,7 +2,7 @@ package com.trangnx.ttsbrowser.playback
 
 import com.trangnx.ttsbrowser.extraction.Chapter
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
-import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
+import com.trangnx.ttsbrowser.extraction.ChapterLoader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
  */
 class AdjacentChapterLoader(
     private val scope: CoroutineScope,
-    private val loader: HeadlessPageLoader,
+    private val loader: ChapterLoader,
     private val playback: PlaybackConnection,
 ) {
     private var job: Job? = null

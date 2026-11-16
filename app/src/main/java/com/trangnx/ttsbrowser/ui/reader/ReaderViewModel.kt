@@ -15,7 +15,7 @@ import com.trangnx.ttsbrowser.data.settings.ReaderTextColor
 import com.trangnx.ttsbrowser.data.settings.ReaderTheme
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.ExtractionResult
-import com.trangnx.ttsbrowser.extraction.HeadlessPageLoader
+import com.trangnx.ttsbrowser.extraction.ChapterLoader
 import com.trangnx.ttsbrowser.playback.LoadedChapter
 import com.trangnx.ttsbrowser.playback.PlaybackConnection
 import com.trangnx.ttsbrowser.playback.PlaybackUiState
@@ -46,7 +46,7 @@ class ReaderViewModel(
     private val settingsRepository: SettingsRepository,
     private val library: LibraryRepository,
     private val sleepTimer: SleepTimer,
-    private val chapterLoader: HeadlessPageLoader,
+    private val chapterLoader: ChapterLoader,
 ) : ViewModel() {
 
     private val _shown = MutableStateFlow<LoadedChapter?>(null)
@@ -240,7 +240,7 @@ class ReaderViewModel(
                     container.settingsRepository,
                     container.libraryRepository,
                     container.sleepTimer,
-                    container.headlessPageLoader,
+                    container.chapterLoader,
                 )
             }
         }

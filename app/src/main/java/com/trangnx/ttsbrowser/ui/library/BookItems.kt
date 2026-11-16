@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,15 +49,22 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** What a story card or row offers besides opening the story. */
-class BookActions(val onChangeCover: () -> Unit, val onClearCover: () -> Unit, val onDelete: () -> Unit)
+class BookActions(
+    val onChangeCover: () -> Unit,
+    val onClearCover: () -> Unit,
+    val onDelete: () -> Unit,
+    val onDownload: () -> Unit,
+    /** Null: the story has no downloaded chapters. */
+    val onDeleteDownloads: (() -> Unit)?,
+)
 
 /** One story as a row: small cover, title, chapter being read. */
 @Composable
-fun BookRow(item: BookWithProgress, cover: File?, loading: Boolean, actions: BookActions, onClick: () -> Unit) {
+fun BookRow(item: BookWithProgress, cover: File?, downloaded: Int, loading: Boolean, actions: BookActions, onClick: () -> Unit) {
     ListItem(
         leadingContent = { CoverImage(cover, Modifier.width(56.dp).aspectRatio(COVER_RATIO).clip(RoundedCornerShape(4.dp))) },
         headlineContent = { Text(item.book.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        supportingContent = { Text(readingText(item), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        supportingContent = { Text(readingText(item, downloaded), maxLines = readingLines(downloaded), overflow = TextOverflow.Ellipsis) },
         trailingContent = { LoadingOrMenu(item, loading, actions) },
         modifier = Modifier.clickable(enabled = !loading, onClick = onClick),
     )
@@ -64,7 +72,7 @@ fun BookRow(item: BookWithProgress, cover: File?, loading: Boolean, actions: Boo
 
 /** One story as a card of a two-column grid: big cover, title, chapter being read. */
 @Composable
-fun BookCard(item: BookWithProgress, cover: File?, loading: Boolean, actions: BookActions, onClick: () -> Unit) {
+fun BookCard(item: BookWithProgress, cover: File?, downloaded: Int, loading: Boolean, actions: BookActions, onClick: () -> Unit) {
     Column(Modifier.clickable(enabled = !loading, onClick = onClick).padding(bottom = 8.dp)) {
         Box {
             CoverImage(cover, Modifier.fillMaxWidth().aspectRatio(COVER_RATIO).clip(RoundedCornerShape(8.dp)))
@@ -78,36 +86,54 @@ fun BookCard(item: BookWithProgress, cover: File?, loading: Boolean, actions: Bo
             modifier = Modifier.padding(top = 8.dp),
         )
         Text(
-            readingText(item),
+            readingText(item, downloaded),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
+            maxLines = readingLines(downloaded),
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
 @Composable
-private fun readingText(item: BookWithProgress): String =
-    item.progress?.let { stringResource(R.string.library_reading, it.chapterTitle) } ?: item.book.host
+private fun readingText(item: BookWithProgress, downloaded: Int): String {
+    val reading = item.progress?.let { stringResource(R.string.library_reading, it.chapterTitle) } ?: item.book.host
+    return if (downloaded > 0) reading + "\n" + stringResource(R.string.library_downloaded, downloaded) else reading
+}
+
+/** Room for a two-line chapter title plus the downloaded line. */
+private fun readingLines(downloaded: Int) = if (downloaded > 0) 3 else 2
 
 @Composable
 private fun LoadingOrMenu(item: BookWithProgress, loading: Boolean, actions: BookActions) {
     if (loading) {
         CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp), strokeWidth = 2.dp)
     } else {
-        BookMenu(hasCover = item.book.coverFile != null, actions)
+        BookMenu(hasCover = item.book.coverFile != null, canDownload = item.progress != null, actions)
     }
 }
 
 @Composable
-private fun BookMenu(hasCover: Boolean, actions: BookActions) {
+private fun BookMenu(hasCover: Boolean, canDownload: Boolean, actions: BookActions) {
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
             Icon(Icons.Outlined.MoreVert, stringResource(R.string.library_more))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (canDownload) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.download_menu)) },
+                    leadingIcon = { Icon(Icons.Outlined.Download, null) },
+                    onClick = { open = false; actions.onDownload() },
+                )
+            }
+            actions.onDeleteDownloads?.let { onDeleteDownloads ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.download_delete)) },
+                    onClick = { open = false; onDeleteDownloads() },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.library_cover_change)) },
                 leadingIcon = { Icon(Icons.Outlined.Image, null) },

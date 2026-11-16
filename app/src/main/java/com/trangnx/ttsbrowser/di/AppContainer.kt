@@ -14,6 +14,10 @@ import com.trangnx.ttsbrowser.data.cover.CoverStore
 import com.trangnx.ttsbrowser.data.db.AppDatabase
 import com.trangnx.ttsbrowser.data.repo.BrowsingRepository
 import com.trangnx.ttsbrowser.data.repo.LibraryRepository
+import com.trangnx.ttsbrowser.data.repo.OfflineChapterRepository
+import com.trangnx.ttsbrowser.download.ChapterDownloader
+import com.trangnx.ttsbrowser.extraction.ChapterLoader
+import com.trangnx.ttsbrowser.extraction.OfflineFirstChapterLoader
 import com.trangnx.ttsbrowser.data.repo.SiteRuleRepository
 import com.trangnx.ttsbrowser.data.settings.SettingsRepository
 import com.trangnx.ttsbrowser.extraction.AdBlocker
@@ -129,7 +133,14 @@ class AppContainer(context: Context) {
 
     val headlessPageLoader: HeadlessPageLoader by lazy { HeadlessPageLoader(appContext, readabilityExtractor, adBlocker) }
 
-    val adjacentChapterLoader: AdjacentChapterLoader by lazy { AdjacentChapterLoader(appScope, headlessPageLoader, playbackConnection) }
+    val offlineChapterRepository: OfflineChapterRepository by lazy { OfflineChapterRepository(database.offlineChapterDao()) }
+
+    /** Opens chapters without the browser tab: a downloaded copy if there is one, otherwise the page. */
+    val chapterLoader: ChapterLoader by lazy { OfflineFirstChapterLoader(offlineChapterRepository, headlessPageLoader) }
+
+    val chapterDownloader: ChapterDownloader by lazy { ChapterDownloader(appScope, headlessPageLoader, offlineChapterRepository) }
+
+    val adjacentChapterLoader: AdjacentChapterLoader by lazy { AdjacentChapterLoader(appScope, chapterLoader, playbackConnection) }
 
     val progressTracker: ProgressTracker by lazy { ProgressTracker(appScope, libraryRepository, playbackConnection) }
 

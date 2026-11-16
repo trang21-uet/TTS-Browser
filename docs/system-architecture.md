@@ -25,10 +25,10 @@ app/src/main/java/com/trangnx/ttsbrowser/
 │   ├── browser/       BrowserScreen, BrowserViewModel, BrowserWebView (WebView giữ ở AppNavHost, sống qua đổi tab), BrowserAddressBar, PageLinkList, UrlInputResolver
 │   ├── reader/        ReaderScreen, ReaderViewModel, ReaderText (highlight, chạm câu, tự cuộn), ReaderControls, ReaderDisplaySheet (phông, cỡ chữ, màu nền/chữ), ReaderColors, ReaderFonts, ReaderSwatches, SentenceSpans
 │   ├── common/        AutoHideBars (BarsVisibility: ẩn thanh khi cuộn xuống, hiện khi cuộn lên; dùng cho trình duyệt và reader)
-│   ├── library/       LibraryScreen, LibraryViewModel (mở truyện đã lưu bằng HeadlessPageLoader)
+│   ├── library/       LibraryScreen, LibraryViewModel (mở truyện đã lưu qua ChapterLoader), DownloadChaptersDialog (tải chương offline)
 │   ├── settings/      SettingsScreen, SettingsViewModel (chặn quảng cáo, tự ẩn thanh công cụ, nguồn giọng, hai giọng Edge, tốc độ/cao độ)
 │   └── player/        MiniPlayerBar, PlayPauseButton, SleepTimerSheet
-├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, PageWebViewSettings, ElementPicker (chọn vùng thủ công), HeadlessPageLoader, AdBlocker/AdHostBlocklist (chặn host quảng cáo từ assets/ad-hosts.txt cho WebView trình duyệt và headless)
+├── extraction/        ReadabilityExtractor, ChapterLinkFinder, TextCleaner, JsResult/RawPage, PageScriptRunner, PageWebViewSettings, ElementPicker (chọn vùng thủ công), ChapterLoader/OfflineFirstChapterLoader, HeadlessPageLoader, AdBlocker/AdHostBlocklist (chặn host quảng cáo từ assets/ad-hosts.txt cho WebView trình duyệt và headless)
 ├── text/              SentenceSegmenter, Sentence, ResumePosition (khôi phục câu theo charOffset), BookTitleSuggester
 ├── tts/
 │   ├── TtsEngine.kt          interface chung (+ TtsEvent, TtsInitException)
@@ -39,7 +39,7 @@ app/src/main/java/com/trangnx/ttsbrowser/
 ├── data/
 │   ├── db/            AppDatabase, entities (Book, Progress, History, Bookmark, SiteRule), DAOs
 │   ├── settings/      SettingsRepository (DataStore: chặn quảng cáo, cỡ chữ, phông, nền và màu chữ reader, tự ẩn thanh, engine/giọng, tốc độ/cao độ riêng mỗi engine)
-│   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository (truyện + tiến độ)
+│   └── repo/          BrowsingRepository (history, bookmark), SiteRuleRepository, LibraryRepository (truyện + tiến độ), OfflineChapterRepository (chương tải offline)
 └── di/                AppContainer
 ```
 
@@ -113,11 +113,13 @@ Không có pause/resume trong interface: player pause = `stop()` + nhớ index, 
 ### HeadlessPageLoader — Phase 6
 - WebView không gắn vào UI (tạo bằng application context, hủy sau khi xong): tải URL, chờ `onPageFinished` rồi 500ms không có lần tải nào nữa (redirect, trang chờ Cloudflare), rồi chạy `ReadabilityExtractor` như tab trình duyệt (cùng site_rule, cùng cookie). Timeout tải 15s; lỗi tải / timeout → `Reason.LoadFailed`.
 - Dùng bởi `AdjacentChapterLoader` (chương trước/sau từ media player → `load` + `playFrom(0)`, một lần một lúc) và `LibraryViewModel` (mở truyện đã lưu).
+- Các nơi mở chương không qua tab trình duyệt (`AdjacentChapterLoader`, `LibraryViewModel`, `ReaderViewModel.openChapter`) dùng `ChapterLoader` = `OfflineFirstChapterLoader`: có bản tải offline (`offline_chapter`, tìm theo `url` hoặc `requestedUrl`) thì tách câu từ đó, không thì `HeadlessPageLoader`.
 - Cấu hình WebView chung (`PageWebViewSettings`): JS + DOM storage bật, tắt truy cập file/content; chặn scheme khác http/https.
 
 ### Thư viện & tiến độ — Phase 6
-- Không lưu nội dung chương: mở lại truyện = tải lại `progress.chapterUrl`, đặt câu theo `resumeIndex(sentenceIndex, charOffset)` (khớp `start` thì giữ chỉ số, không thì câu chứa `charOffset`), nạp vào player và pause. Chương đang nằm trong player thì giữ vị trí sống.
+- Không lưu nội dung chương (trừ chương đã tải offline, xem dưới): mở lại truyện = tải lại `progress.chapterUrl`, đặt câu theo `resumeIndex(sentenceIndex, charOffset)` (khớp `start` thì giữ chỉ số, không thì câu chứa `charOffset`), nạp vào player và pause. Chương đang nằm trong player thì giữ vị trí sống.
 - Chương thuộc truyện nào = truyện có `progress.chapterUrl` ∈ {url, prevUrl, nextUrl} của chương (`LibraryRepository.bookOf`, Flow Room) → đọc tiếp chương liền kề vẫn thuộc cùng truyện, không cần trạng thái "truyện đang đọc". "Lưu truyện" trùng (host, tên) thì cập nhật truyện cũ.
+- Tải chương offline (v0.7.0): `ChapterDownloader` (app scope, một lần một truyện) bắt đầu từ `progress.chapterUrl`, lặp `HeadlessPageLoader.load` → lưu `offline_chapter` → theo `nextUrl`, nghỉ 800ms giữa các trang; dừng khi đủ số chương, hết `nextUrl`, gặp URL đã đi qua, lỗi tải hoặc người dùng bấm Dừng. Chương đã có không tải lại nhưng vẫn theo `nextUrl`. Chạy trong process app (không foreground service): app bị hệ thống tắt thì dừng, chương đã tải vẫn giữ. Bảng `offline_chapter` (Room v5, AutoMigration 4→5) có FK `bookId` CASCADE: xóa truyện xóa luôn chương đã tải.
 - `ProgressTracker` (app scope, khởi động cùng `AppContainer`): ghi khi truyện, chương đang nạp và chỉ số câu cùng một chương; tối đa 1 lần/2s, ngay khi pause/hết chương, và khi `PlaybackService` bị gỡ/hủy. `PlaybackConnection.load` đặt `loaded` trước khi đổi hàng đợi để chỉ số câu của chương mới không bị gán cho truyện của chương cũ.
 - `SleepTimer` (app scope, `elapsedRealtime`, kiểm tra mỗi 15s): 15/30/45/60 phút → pause player; "hết chương" → gỡ khi chương đọc xong và chặn tự chuyển chương (`onChapterEnded()` trả true). Không có timer này, `AppContainer` gọi `AdjacentChapterLoader.openNext` khi player kết thúc chương: tự đọc tiếp chương sau, chương cuối thì dừng. Phase 7 giảm âm lượng Edge tuyến tính trong 15 giây cuối, kiểm tra mỗi giây; khi hủy hoặc hết giờ khôi phục volume 1.0 (pause trước khi khôi phục). System không hỗ trợ thay đổi âm lượng các câu đã xếp hàng nên giữ hành vi cũ.
 
