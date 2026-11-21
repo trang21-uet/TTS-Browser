@@ -131,6 +131,14 @@ fun ReaderText(
                 )
             }
         }
+        ReaderScrollbar(
+            listState = listState,
+            onUserInteraction = { follow = false },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .padding(vertical = 4.dp),
+        )
         if (!follow) {
             SmallFloatingActionButton(
                 onClick = { follow = true },

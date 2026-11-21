@@ -2,6 +2,12 @@
 
 Mỗi phiên bản có một mục `## [x.y.z]`. Workflow `release-apk.yml` lấy nội dung mục khớp với `versionName` làm ghi chú của GitHub release.
 
+## [0.8.0] - 2026-11-22
+
+### Added
+
+- Thanh scroll dọc trong chế độ đọc: cho phép cuộn nhanh qua toàn bộ chương truyện bằng cách kéo thumb; nhấn giữ vào thumb để mở rộng thanh cuộn và tăng độ mờ lên 1 (rõ nét); bấm vào khoảng track phía trên hoặc dưới thumb để cuộn lên/xuống một trang màn hình. Thanh cuộn luôn hiển thị và tự thích ứng màu sắc theo màu nền/màu chữ của màn hình đọc.
+
 ## [0.7.0] - 2026-11-16
 
 ### Added
